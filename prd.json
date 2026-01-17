@@ -1,0 +1,308 @@
+{
+  "project": "MuratecInstallLogistics",
+  "branchName": "ralph/feature-request-observability",
+  "description": "Add dev observability tools, real-time Convex persistence, and iterative refinement for AI feature requests",
+  "referenceSpec": "tasks/prd-feature-request-observability.md",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Update Convex schema with new fields",
+      "description": "As a developer, I need the schema updated to support prompts array, generationStatus, and submittedAt timestamp",
+      "acceptanceCriteria": [
+        "Add generationStatus field: 'idle' | 'generating' | 'complete' | 'error'",
+        "Add prompts array: { content: string, createdAt: number }[]",
+        "Add submittedAt: optional number timestamp",
+        "Remove any boolean submitted field if present",
+        "bun check passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Schema changes must come first as other stories depend on these fields"
+    },
+    {
+      "id": "US-002",
+      "title": "Add createDraft mutation for first chunk persistence",
+      "description": "As a developer, I need a mutation to create a draft feature request when the first stream chunk arrives",
+      "acceptanceCriteria": [
+        "createDraft mutation accepts: title, description (first prompt), authorId, authorEmail",
+        "Sets generationStatus to 'generating'",
+        "Initializes prompts array with first prompt",
+        "Sets status to 'draft'",
+        "Returns the created document ID",
+        "bun check passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Add updateGeneratedContent mutation",
+      "description": "As a developer, I need a mutation to update prdContent and userStories during streaming",
+      "acceptanceCriteria": [
+        "updateGeneratedContent accepts: id, prdContent (optional), userStories (optional)",
+        "Updates only provided fields",
+        "Updates updatedAt timestamp",
+        "bun check passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Add updateGenerationStatus mutation",
+      "description": "As a developer, I need a mutation to set generation status",
+      "acceptanceCriteria": [
+        "updateGenerationStatus accepts: id, generationStatus",
+        "Validates status is one of: idle, generating, complete, error",
+        "Updates updatedAt timestamp",
+        "bun check passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Add addPrompt mutation for refinement history",
+      "description": "As a developer, I need a mutation to append prompts to the history array",
+      "acceptanceCriteria": [
+        "addPrompt accepts: id, content (prompt text)",
+        "Appends new prompt object with content and createdAt timestamp",
+        "Updates updatedAt timestamp",
+        "bun check passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Add submit mutation with submittedAt timestamp",
+      "description": "As a developer, I need a mutation to mark a feature request as submitted",
+      "acceptanceCriteria": [
+        "submit mutation accepts: id",
+        "Sets submittedAt to Date.now()",
+        "Sets status to 'submitted'",
+        "bun check passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Add server-side logging to API route",
+      "description": "As a developer, I want server-side logs for request metadata, timing, and errors",
+      "acceptanceCriteria": [
+        "Log request start with metadata: authorEmail, isRefinement, prompt count",
+        "Log stream duration on completion",
+        "Log any errors with full context",
+        "Logs include timestamps",
+        "bun check passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Update API route to accept refinement context",
+      "description": "As a developer, I need the API route to accept prompts history and current content for refinements",
+      "acceptanceCriteria": [
+        "Accept optional fields: prompts, currentPrd, currentStories, isRefinement",
+        "Modify system prompt for refinements to include iteration context",
+        "Include prompt history in refinement system prompt",
+        "Include current PRD and stories state in refinement prompt",
+        "bun check passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Add console logging to streaming hook",
+      "description": "As a developer, I want console logs showing chunks, state transitions, and timing",
+      "acceptanceCriteria": [
+        "Log each chunk with timestamp and byte count",
+        "Log state transitions: input → generating → review",
+        "Log parsing results: isPrdComplete, isStoriesComplete",
+        "Log elapsed time on completion",
+        "Logs prefixed with [StreamDebug] for easy filtering",
+        "bun check passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Create DebugPanel component",
+      "description": "As a developer, I want a visual debug panel showing stream state and metrics",
+      "acceptanceCriteria": [
+        "Panel shows: raw stream output (monospace, scrolling)",
+        "Panel shows: parsed PRD/stories state",
+        "Panel shows: chunk count, bytes received, elapsed time",
+        "Panel shows: current parsing state (awaiting PRD_START, in PRD, etc.)",
+        "Only renders when NODE_ENV === 'development'",
+        "bun check passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Add keyboard shortcut toggle for debug panel",
+      "description": "As a developer, I want to toggle the debug panel with Ctrl+Shift+D",
+      "acceptanceCriteria": [
+        "Ctrl+Shift+D toggles debug panel visibility",
+        "Panel state persists during session",
+        "Keyboard listener only active in development mode",
+        "bun check passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Create Convex document on first stream chunk",
+      "description": "As a user, I want my feature request saved immediately when generation starts",
+      "acceptanceCriteria": [
+        "Call createDraft mutation when first chunk received",
+        "Store returned document ID in hook state",
+        "Subsequent updates use this document ID",
+        "bun check passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Update Convex incrementally during streaming",
+      "description": "As a user, I want my PRD saved progressively as it generates",
+      "acceptanceCriteria": [
+        "Call updateGeneratedContent with debounce (500ms)",
+        "Update prdContent when PRD section has new content",
+        "Update userStories when stories section has new content",
+        "Set generationStatus to 'complete' when both sections done",
+        "bun check passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Render PRD/stories from useQuery instead of local state",
+      "description": "As a user, I want to see my PRD from Convex so it persists across refreshes",
+      "acceptanceCriteria": [
+        "Use useQuery to fetch feature request by ID",
+        "Display prdContent and userStories from query result",
+        "Handle loading state while query pending",
+        "bun check passes",
+        "Verify in browser: refresh page during generation, content persists"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "Add auto-save for PRD edits with debounce",
+      "description": "As a user, I want my PRD edits saved automatically",
+      "acceptanceCriteria": [
+        "PRD textarea changes trigger debounced mutation (500ms)",
+        "Immediate save on blur",
+        "Show 'Saving...' indicator during save",
+        "Show 'Saved' indicator after successful save",
+        "bun check passes",
+        "Verify in browser: edit PRD, indicator shows saving/saved"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "Add auto-save for user stories edits",
+      "description": "As a user, I want my user story edits saved automatically",
+      "acceptanceCriteria": [
+        "Story edits trigger debounced mutation (500ms)",
+        "Immediate save on blur",
+        "Show save indicator near edited field",
+        "bun check passes",
+        "Verify in browser: edit a story, changes persist after refresh"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "Add Refine with AI button and prompt input",
+      "description": "As a user, I want to provide additional instructions to refine my PRD",
+      "acceptanceCriteria": [
+        "Refine with AI button appears in review step",
+        "Button opens inline text input below PRD",
+        "Text input has submit button",
+        "bun check passes",
+        "Verify in browser: button visible, input opens"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-018",
+      "title": "Display prompt history in refinement UI",
+      "description": "As a user, I want to see my previous instructions when refining",
+      "acceptanceCriteria": [
+        "Show collapsible prompt history list",
+        "Each prompt shows content and timestamp",
+        "Most recent prompt at top",
+        "bun check passes",
+        "Verify in browser: prompt history visible after refinement"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-019",
+      "title": "Implement refinement submission flow",
+      "description": "As a user, I want to submit refinement instructions and see updated content",
+      "acceptanceCriteria": [
+        "On submit: add prompt to Convex via addPrompt mutation",
+        "On submit: set generationStatus to 'generating'",
+        "On submit: call API with prompts, currentPrd, currentStories, isRefinement=true",
+        "Current content stays visible but greyed out during regeneration",
+        "New content replaces old when complete",
+        "bun check passes",
+        "Verify in browser: full refinement flow works"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "Update submit flow to use submittedAt timestamp",
+      "description": "As a user, I want my submission recorded with a timestamp",
+      "acceptanceCriteria": [
+        "Submit button calls submit mutation",
+        "submittedAt set on successful submission",
+        "UI shows submitted state based on submittedAt !== null",
+        "bun check passes",
+        "Verify in browser: submit works, timestamp recorded"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

@@ -5,7 +5,10 @@ import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useStreamingResponse } from "@/hooks/use-streaming-response";
-import { extractTitleFromPrd, type UserStory } from "@/lib/ai/parse-ai-response";
+import {
+  extractTitleFromPrd,
+  type UserStory,
+} from "@/lib/ai/parse-ai-response";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {

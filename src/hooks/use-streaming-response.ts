@@ -8,16 +8,10 @@ import {
 } from "@/lib/ai/parse-ai-response";
 
 export function useStreamingResponse() {
-  const {
-    completion,
-    complete,
-    isLoading,
-    error,
-    stop,
-    setCompletion,
-  } = useCompletion({
-    api: "/api/ai/generate-prd",
-  });
+  const { completion, complete, isLoading, error, stop, setCompletion } =
+    useCompletion({
+      api: "/api/ai/generate-prd",
+    });
 
   const parsedResponse = useMemo<ParsedAIResponse>(() => {
     if (!completion) {
@@ -38,7 +32,7 @@ export function useStreamingResponse() {
         body: { description },
       });
     },
-    [complete]
+    [complete],
   );
 
   const reset = useCallback(() => {
@@ -53,6 +47,7 @@ export function useStreamingResponse() {
     stop,
     reset,
     parsedResponse,
-    isComplete: parsedResponse.isPrdComplete && parsedResponse.isStoriesComplete,
+    isComplete:
+      parsedResponse.isPrdComplete && parsedResponse.isStoriesComplete,
   };
 }

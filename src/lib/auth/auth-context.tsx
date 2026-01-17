@@ -34,10 +34,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const getOrCreateUser = useMutation(api.users.getOrCreate);
-  const user = useQuery(
-    api.users.getByEmail,
-    email ? { email } : "skip"
-  ) as User | null | undefined;
+  const user = useQuery(api.users.getByEmail, email ? { email } : "skip") as
+    | User
+    | null
+    | undefined;
 
   useEffect(() => {
     const stored = localStorage.getItem(AUTH_STORAGE_KEY);
@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
       }
     },
-    [getOrCreateUser]
+    [getOrCreateUser],
   );
 
   const logout = useCallback(() => {

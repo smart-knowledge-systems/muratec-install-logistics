@@ -20,9 +20,7 @@ function FeatureRequestsContent() {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">
-              {user?.email}
-            </span>
+            <span className="text-sm text-muted-foreground">{user?.email}</span>
             {user?.role === "admin" && (
               <Link href="/admin/feature-requests">
                 <Button variant="outline" size="sm">

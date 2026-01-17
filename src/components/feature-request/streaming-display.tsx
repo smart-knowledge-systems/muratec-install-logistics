@@ -66,7 +66,8 @@ export function StreamingDisplay({
           <CardTitle className="text-lg font-medium">User Stories</CardTitle>
           {isStoriesComplete ? (
             <Badge variant="default">
-              {userStories.length} {userStories.length === 1 ? "story" : "stories"}
+              {userStories.length}{" "}
+              {userStories.length === 1 ? "story" : "stories"}
             </Badge>
           ) : isLoading && isPrdComplete ? (
             <Badge variant="secondary">Generating...</Badge>
@@ -98,15 +99,18 @@ export function StreamingDisplay({
                           {story.priority}
                         </Badge>
                         {story.estimatedEffort && (
-                          <Badge variant="outline">{story.estimatedEffort}</Badge>
+                          <Badge variant="outline">
+                            {story.estimatedEffort}
+                          </Badge>
                         )}
                       </div>
                     </div>
                     <h4 className="font-medium">{story.title}</h4>
                     <p className="text-sm text-muted-foreground">
                       As a <span className="font-medium">{story.asA}</span>, I
-                      want <span className="font-medium">{story.iWant}</span>, so
-                      that <span className="font-medium">{story.soThat}</span>.
+                      want <span className="font-medium">{story.iWant}</span>,
+                      so that{" "}
+                      <span className="font-medium">{story.soThat}</span>.
                     </p>
                     {story.acceptanceCriteria.length > 0 && (
                       <div className="text-sm">

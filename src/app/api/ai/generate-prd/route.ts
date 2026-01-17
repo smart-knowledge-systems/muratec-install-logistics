@@ -85,7 +85,7 @@ export async function POST(req: Request) {
     if (!description || typeof description !== "string") {
       return new Response(
         JSON.stringify({ error: "Description is required" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { "Content-Type": "application/json" } },
       );
     }
 
@@ -100,9 +100,9 @@ export async function POST(req: Request) {
     return result.toTextStreamResponse();
   } catch (error) {
     console.error("Error generating PRD:", error);
-    return new Response(
-      JSON.stringify({ error: "Failed to generate PRD" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Failed to generate PRD" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }

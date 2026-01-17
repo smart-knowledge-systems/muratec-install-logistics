@@ -96,7 +96,7 @@ export function parseAIResponse(content: string): ParsedAIResponse {
                 ? story.priority
                 : "medium",
               estimatedEffort: ["XS", "S", "M", "L", "XL"].includes(
-                story.estimatedEffort
+                story.estimatedEffort,
               )
                 ? story.estimatedEffort
                 : undefined,

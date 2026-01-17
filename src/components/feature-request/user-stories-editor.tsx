@@ -52,23 +52,21 @@ export function UserStoriesEditor({
         setJsonError("Invalid JSON format");
       }
     },
-    [onChange]
+    [onChange],
   );
 
   const updateStory = useCallback(
     (id: string, updates: Partial<UserStory>) => {
-      onChange(
-        stories.map((s) => (s.id === id ? { ...s, ...updates } : s))
-      );
+      onChange(stories.map((s) => (s.id === id ? { ...s, ...updates } : s)));
     },
-    [stories, onChange]
+    [stories, onChange],
   );
 
   const removeStory = useCallback(
     (id: string) => {
       onChange(stories.filter((s) => s.id !== id));
     },
-    [stories, onChange]
+    [stories, onChange],
   );
 
   const addStory = useCallback(() => {
@@ -247,7 +245,7 @@ interface StoryFormProps {
 function StoryForm({ story, onChange, onSave, onCancel }: StoryFormProps) {
   const updateField = <K extends keyof UserStory>(
     field: K,
-    value: UserStory[K]
+    value: UserStory[K],
   ) => {
     onChange({ ...story, [field]: value });
   };
@@ -265,7 +263,7 @@ function StoryForm({ story, onChange, onSave, onCancel }: StoryFormProps) {
   const removeCriterion = (index: number) => {
     updateField(
       "acceptanceCriteria",
-      story.acceptanceCriteria.filter((_, i) => i !== index)
+      story.acceptanceCriteria.filter((_, i) => i !== index),
     );
   };
 
@@ -355,7 +353,12 @@ function StoryForm({ story, onChange, onSave, onCancel }: StoryFormProps) {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <label className="text-sm font-medium">Acceptance Criteria</label>
-          <Button type="button" size="sm" variant="outline" onClick={addCriterion}>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={addCriterion}
+          >
             Add Criterion
           </Button>
         </div>

@@ -171,9 +171,11 @@ function FeatureRequestDetailContent({ id }: FeatureRequestDetailContentProps) {
                             Acceptance Criteria:
                           </p>
                           <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                            {story.acceptanceCriteria.map((criterion, index) => (
-                              <li key={index}>{criterion}</li>
-                            ))}
+                            {story.acceptanceCriteria.map(
+                              (criterion, index) => (
+                                <li key={index}>{criterion}</li>
+                              ),
+                            )}
                           </ul>
                         </div>
                       )}
