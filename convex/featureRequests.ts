@@ -177,3 +177,22 @@ export const remove = mutation({
     await ctx.db.delete(args.id);
   },
 });
+
+export const updateGeneratedContent = mutation({
+  args: {
+    id: v.id("featureRequests"),
+    prdContent: v.optional(v.string()),
+    userStories: v.optional(v.array(userStoryValidator)),
+  },
+  handler: async (ctx, args) => {
+    const { id, ...updates } = args;
+    const filteredUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([, value]) => value !== undefined),
+    );
+
+    await ctx.db.patch(id, {
+      ...filteredUpdates,
+      updatedAt: Date.now(),
+    });
+  },
+});
