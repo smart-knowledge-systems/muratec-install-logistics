@@ -60,3 +60,9 @@ Status: Claude session completed
 ---
 Iteration 7: 2026-01-17 00:07:08
 Working on: US-014: Render PRD/stories from useQuery instead of local state
+Status: Claude session completed
+---
+Iteration 8: 2026-01-17 00:14:31
+Working on: US-015: Add auto-save for PRD edits with debounce
+Status: Complete - Created reusable useAutoSave hook with 500ms debounce, save status indicators, and blur-triggered immediate saves. Hook pattern enables easy reuse for US-016 (user stories auto-save).
+Status: Claude session completed

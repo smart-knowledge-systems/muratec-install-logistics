@@ -224,7 +224,7 @@
         "Verify in browser: edit PRD, indicator shows saving/saved"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

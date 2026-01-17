@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useStreamingResponse } from "@/hooks/use-streaming-response";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
+import { useAutoSave } from "@/hooks/use-auto-save";
 import {
   extractTitleFromPrd,
   type UserStory,
@@ -38,6 +39,7 @@ export function FeatureRequestForm() {
   const [isDebugPanelVisible, setIsDebugPanelVisible] = useState(false);
 
   const createFeatureRequest = useMutation(api.featureRequests.create);
+  const updatePrdContent = useMutation(api.featureRequests.update);
 
   const {
     completion,
@@ -67,6 +69,20 @@ export function FeatureRequestForm() {
     editedPrd ?? featureRequest?.prdContent ?? parsedResponse.prd ?? "";
   const storiesValue =
     editedStories ?? featureRequest?.userStories ?? parsedResponse.userStories;
+
+  // Auto-save PRD edits with debounce
+  const { saveStatus: prdSaveStatus, saveNow: savePrdNow } = useAutoSave({
+    value: prdValue,
+    onSave: async (newPrdContent) => {
+      if (!documentId) return;
+      await updatePrdContent({
+        id: documentId,
+        prdContent: newPrdContent,
+      });
+    },
+    delay: 500,
+    enabled: step === "review" && !!documentId,
+  });
 
   // Keyboard shortcut: Ctrl+Shift+D to toggle debug panel
   // Only active in development mode
@@ -258,7 +274,12 @@ export function FeatureRequestForm() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <PrdEditor value={prdValue} onChange={setEditedPrd} />
+        <PrdEditor
+          value={prdValue}
+          onChange={setEditedPrd}
+          saveStatus={prdSaveStatus}
+          onBlur={savePrdNow}
+        />
         <UserStoriesEditor stories={storiesValue} onChange={setEditedStories} />
       </div>
 
