@@ -3,15 +3,26 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "dev": "bunx concurrently \"bunx convex dev\" \"bun run --bun next dev --turbo\"",
+    "build": "bun run --bun next build",
+    "start": "bun run --bun next start",
+    "preview": "bun run build && bunx concurrently \"bunx convex dev\" \"bun run start\"",
+    "lint": "bun run --bun eslint . --cache",
+    "lint:fix": "bun run --bun eslint --fix .",
+    "typecheck": "bun run --bun tsc --noEmit",
+    "check": "bun run --bun eslint . --cache && tsc --noEmit",
+    "format": "bun run --bun prettier --write \"**/*.{ts,tsx,js,jsx,md,mdx,css}\" --cache -l",
+    "format:check": "bun run --bun prettier --check \"**/*.{ts,tsx,js,jsx,md,mdx,css}\" --cache"
   },
   "dependencies": {
+    "@ai-sdk/react": "^3.0.41",
+    "ai": "^6.0.39",
+    "convex": "^1.31.4",
     "next": "16.1.2",
+    "prettier": "^3.8.0",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "zod": "^4.3.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -21,8 +32,10 @@
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.2",
+    "shadcn": "^3.6.3",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "xlsx": "^0.18.5"
   },
   "ignoreScripts": [
     "sharp",
