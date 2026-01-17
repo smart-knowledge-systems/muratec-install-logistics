@@ -79,10 +79,33 @@ Important:
 - Keep acceptance criteria measurable and testable`;
 
 export async function POST(req: Request) {
+  const startTime = Date.now();
+  const requestId = `req_${startTime}_${Math.random().toString(36).substring(2, 9)}`;
+
   try {
-    const { description } = await req.json();
+    const body = await req.json();
+    const {
+      description,
+      authorEmail,
+      isRefinement = false,
+      prompts = [],
+    } = body;
+
+    // Log request start with metadata
+    console.log(
+      `[${new Date().toISOString()}] [${requestId}] PRD Generation Request Started`,
+      {
+        authorEmail: authorEmail ?? "unknown",
+        isRefinement,
+        promptCount: Array.isArray(prompts) ? prompts.length : 0,
+        hasDescription: !!description,
+      },
+    );
 
     if (!description || typeof description !== "string") {
+      console.error(
+        `[${new Date().toISOString()}] [${requestId}] Validation Error: Missing description`,
+      );
       return new Response(
         JSON.stringify({ error: "Description is required" }),
         { status: 400, headers: { "Content-Type": "application/json" } },
@@ -97,9 +120,32 @@ export async function POST(req: Request) {
       maxOutputTokens: 4096,
     });
 
+    // Log successful stream initiation
+    const duration = Date.now() - startTime;
+    console.log(
+      `[${new Date().toISOString()}] [${requestId}] Stream Initiated (${duration}ms)`,
+    );
+
     return result.toTextStreamResponse();
   } catch (error) {
-    console.error("Error generating PRD:", error);
+    const duration = Date.now() - startTime;
+
+    // Log errors with full context
+    console.error(
+      `[${new Date().toISOString()}] [${requestId}] Error generating PRD (${duration}ms)`,
+      {
+        error:
+          error instanceof Error
+            ? {
+                message: error.message,
+                stack: error.stack,
+                name: error.name,
+              }
+            : String(error),
+        duration,
+      },
+    );
+
     return new Response(JSON.stringify({ error: "Failed to generate PRD" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
