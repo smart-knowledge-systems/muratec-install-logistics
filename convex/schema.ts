@@ -24,7 +24,7 @@ export default defineSchema({
         priority: v.union(
           v.literal("high"),
           v.literal("medium"),
-          v.literal("low")
+          v.literal("low"),
         ),
         estimatedEffort: v.optional(
           v.union(
@@ -32,10 +32,10 @@ export default defineSchema({
             v.literal("S"),
             v.literal("M"),
             v.literal("L"),
-            v.literal("XL")
-          )
+            v.literal("XL"),
+          ),
         ),
-      })
+      }),
     ),
     status: v.union(
       v.literal("draft"),
@@ -44,8 +44,25 @@ export default defineSchema({
       v.literal("approved"),
       v.literal("rejected"),
       v.literal("in_progress"),
-      v.literal("completed")
+      v.literal("completed"),
     ),
+    generationStatus: v.optional(
+      v.union(
+        v.literal("idle"),
+        v.literal("generating"),
+        v.literal("complete"),
+        v.literal("error"),
+      ),
+    ),
+    prompts: v.optional(
+      v.array(
+        v.object({
+          content: v.string(),
+          createdAt: v.number(),
+        }),
+      ),
+    ),
+    submittedAt: v.optional(v.number()),
     authorId: v.optional(v.id("users")),
     authorEmail: v.string(),
     createdAt: v.number(),
