@@ -295,7 +295,10 @@ export function FeatureRequestForm() {
         />
       </div>
 
-      <RefineWithAi onSubmit={handleRefineSubmit} />
+      <RefineWithAi
+        onSubmit={handleRefineSubmit}
+        prompts={featureRequest?.prompts}
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <PrdEditor
