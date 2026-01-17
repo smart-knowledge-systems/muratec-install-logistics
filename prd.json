@@ -301,7 +301,7 @@
         "Verify in browser: submit works, timestamp recorded"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": ""
     }
   ]

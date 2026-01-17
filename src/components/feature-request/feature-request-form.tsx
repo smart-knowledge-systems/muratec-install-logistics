@@ -7,10 +7,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { useStreamingResponse } from "@/hooks/use-streaming-response";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { useAutoSave } from "@/hooks/use-auto-save";
-import {
-  extractTitleFromPrd,
-  type UserStory,
-} from "@/lib/ai/parse-ai-response";
+import { type UserStory } from "@/lib/ai/parse-ai-response";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -40,7 +37,7 @@ export function FeatureRequestForm() {
   const [editedStories, setEditedStories] = useState<UserStory[] | null>(null);
   const [isDebugPanelVisible, setIsDebugPanelVisible] = useState(false);
 
-  const createFeatureRequest = useMutation(api.featureRequests.create);
+  const submitFeatureRequest = useMutation(api.featureRequests.submit);
   const updatePrdContent = useMutation(api.featureRequests.update);
 
   const {
@@ -155,19 +152,19 @@ export function FeatureRequestForm() {
       return;
     }
 
+    if (!documentId) {
+      toast.error("No feature request to submit");
+      return;
+    }
+
     if (!prdValue.trim()) {
       toast.error("PRD content is required");
       return;
     }
 
     try {
-      const title = extractTitleFromPrd(prdValue);
-      await createFeatureRequest({
-        title,
-        description,
-        prdContent: prdValue,
-        userStories: storiesValue,
-        authorEmail: user.email,
+      await submitFeatureRequest({
+        id: documentId,
       });
       toast.success("Feature request submitted successfully!");
       handleStartOver();
@@ -175,14 +172,7 @@ export function FeatureRequestForm() {
       console.error("Failed to submit feature request:", err);
       toast.error("Failed to submit feature request. Please try again.");
     }
-  }, [
-    user,
-    prdValue,
-    storiesValue,
-    description,
-    createFeatureRequest,
-    handleStartOver,
-  ]);
+  }, [user, documentId, prdValue, submitFeatureRequest, handleStartOver]);
 
   const handleRefineSubmit = useCallback(
     async (prompt: string) => {
@@ -317,6 +307,7 @@ export function FeatureRequestForm() {
 
   // Check if we're currently regenerating
   const isRegenerating = featureRequest?.generationStatus === "generating";
+  const isSubmitted = featureRequest?.submittedAt !== undefined;
 
   return (
     <div className="space-y-6">
@@ -327,6 +318,7 @@ export function FeatureRequestForm() {
         <SubmitButton
           onSubmit={handleSubmitRequest}
           disabled={!prdValue.trim() || storiesValue.length === 0}
+          isSubmitted={isSubmitted}
         />
       </div>
 
@@ -367,6 +359,7 @@ export function FeatureRequestForm() {
         <SubmitButton
           onSubmit={handleSubmitRequest}
           disabled={!prdValue.trim() || storiesValue.length === 0}
+          isSubmitted={isSubmitted}
         />
       </div>
     </div>

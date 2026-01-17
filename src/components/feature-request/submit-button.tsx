@@ -15,9 +15,14 @@ import {
 interface SubmitButtonProps {
   onSubmit: () => Promise<void>;
   disabled?: boolean;
+  isSubmitted?: boolean;
 }
 
-export function SubmitButton({ onSubmit, disabled }: SubmitButtonProps) {
+export function SubmitButton({
+  onSubmit,
+  disabled,
+  isSubmitted,
+}: SubmitButtonProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -30,6 +35,10 @@ export function SubmitButton({ onSubmit, disabled }: SubmitButtonProps) {
       setIsSubmitting(false);
     }
   };
+
+  if (isSubmitted) {
+    return <Button disabled>Already Submitted</Button>;
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

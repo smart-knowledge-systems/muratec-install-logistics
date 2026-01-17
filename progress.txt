@@ -84,3 +84,7 @@ Iteration 12: 2026-01-17 00:33:00
 Working on: US-019: Implement refinement submission flow
 Status: Complete - Added handleRefineSubmit to streaming hook that orchestrates the full refinement flow: adds prompt to Convex, sets status to 'generating', calls API with refinement context (prompts history, current PRD/stories, isRefinement flag). Implemented visual feedback with greyed-out content and loading overlay during regeneration. Content replacement handled automatically via reactive Convex query. Key lesson: Clearing local edits on refinement start ensures Convex data takes precedence, avoiding state conflicts between local and remote data during regeneration.
 Status: Claude session completed
+Status: Claude session completed
+---
+Iteration 13: 2026-01-17 00:40:44
+Working on: US-020: Update submit flow to use submittedAt timestamp
