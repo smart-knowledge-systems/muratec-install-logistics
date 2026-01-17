@@ -196,3 +196,21 @@ export const updateGeneratedContent = mutation({
     });
   },
 });
+
+export const updateGenerationStatus = mutation({
+  args: {
+    id: v.id("featureRequests"),
+    generationStatus: v.union(
+      v.literal("idle"),
+      v.literal("generating"),
+      v.literal("complete"),
+      v.literal("error"),
+    ),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, {
+      generationStatus: args.generationStatus,
+      updatedAt: Date.now(),
+    });
+  },
+});
