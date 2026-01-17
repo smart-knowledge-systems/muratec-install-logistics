@@ -24,6 +24,7 @@ import { StreamingDisplay } from "./streaming-display";
 import { PrdEditor } from "./prd-editor";
 import { UserStoriesEditor } from "./user-stories-editor";
 import { SubmitButton } from "./submit-button";
+import { DebugPanel } from "./debug-panel";
 
 type Step = "input" | "generating" | "review";
 
@@ -37,6 +38,7 @@ export function FeatureRequestForm() {
   const createFeatureRequest = useMutation(api.featureRequests.create);
 
   const {
+    completion,
     handleSubmit,
     isLoading,
     error,
@@ -44,6 +46,9 @@ export function FeatureRequestForm() {
     reset,
     parsedResponse,
     isComplete,
+    chunkCount,
+    bytesReceived,
+    elapsedMs,
   } = useStreamingResponse();
 
   const handleGenerate = useCallback(() => {
@@ -176,6 +181,15 @@ export function FeatureRequestForm() {
           isPrdComplete={parsedResponse.isPrdComplete}
           isStoriesComplete={parsedResponse.isStoriesComplete}
           isLoading={isLoading}
+        />
+
+        <DebugPanel
+          completion={completion}
+          parsedResponse={parsedResponse}
+          isLoading={isLoading}
+          chunkCount={chunkCount}
+          bytesReceived={bytesReceived}
+          elapsedMs={elapsedMs}
         />
 
         {isComplete && (

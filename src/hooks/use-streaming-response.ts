@@ -1,58 +1,84 @@
 "use client";
 
 import { useCompletion } from "@ai-sdk/react";
-import { useCallback, useMemo, useRef, useEffect } from "react";
+import { useCallback, useMemo, useRef, useEffect, useState } from "react";
 import {
   parseAIResponse,
   type ParsedAIResponse,
 } from "@/lib/ai/parse-ai-response";
 
+interface DebugMetrics {
+  chunkCount: number;
+  bytesReceived: number;
+  elapsedMs: number | null;
+}
+
 export function useStreamingResponse() {
   const startTimeRef = useRef<number | null>(null);
-  const chunkCountRef = useRef(0);
-  const bytesReceivedRef = useRef(0);
   const previousCompletionRef = useRef("");
+  const [debugMetrics, setDebugMetrics] = useState<DebugMetrics>({
+    chunkCount: 0,
+    bytesReceived: 0,
+    elapsedMs: null,
+  });
 
   const { completion, complete, isLoading, error, stop, setCompletion } =
     useCompletion({
       api: "/api/ai/generate-prd",
+      onFinish: () => {
+        // Stream completed - finalize in finish callback
+        if (startTimeRef.current) {
+          const elapsed = Date.now() - startTimeRef.current;
+          setDebugMetrics((prev) => {
+            console.log(
+              `[StreamDebug] Stream completed in ${elapsed}ms - Total chunks: ${prev.chunkCount}, Total bytes: ${prev.bytesReceived}`,
+            );
+            return { ...prev, elapsedMs: elapsed };
+          });
+          startTimeRef.current = null;
+        }
+      },
     });
 
-  // Track chunks and log
+  // Track chunk updates when completion changes
   useEffect(() => {
-    if (isLoading && !startTimeRef.current) {
-      // Stream started
-      startTimeRef.current = Date.now();
-      chunkCountRef.current = 0;
-      bytesReceivedRef.current = 0;
-      console.log("[StreamDebug] Stream started at", new Date().toISOString());
-    }
-
     if (completion && completion !== previousCompletionRef.current) {
       // New chunk received
       const newContent = completion.slice(previousCompletionRef.current.length);
       const chunkBytes = new TextEncoder().encode(newContent).length;
 
-      chunkCountRef.current++;
-      bytesReceivedRef.current += chunkBytes;
-
-      console.log(
-        `[StreamDebug] Chunk ${chunkCountRef.current}: ${chunkBytes} bytes at`,
-        new Date().toISOString(),
-      );
+      setDebugMetrics((prev) => {
+        const newCount = prev.chunkCount + 1;
+        console.log(
+          `[StreamDebug] Chunk ${newCount}: ${chunkBytes} bytes at`,
+          new Date().toISOString(),
+        );
+        return {
+          ...prev,
+          chunkCount: newCount,
+          bytesReceived: prev.bytesReceived + chunkBytes,
+        };
+      });
 
       previousCompletionRef.current = completion;
     }
+  }, [completion]);
 
-    if (!isLoading && startTimeRef.current && completion) {
-      // Stream completed
-      const elapsed = Date.now() - startTimeRef.current;
-      console.log(
-        `[StreamDebug] Stream completed in ${elapsed}ms - Total chunks: ${chunkCountRef.current}, Total bytes: ${bytesReceivedRef.current}`,
-      );
-      startTimeRef.current = null;
-    }
-  }, [completion, isLoading]);
+  // Update elapsed time during streaming using an interval
+  useEffect(() => {
+    if (!isLoading || !startTimeRef.current) return;
+
+    const interval = setInterval(() => {
+      if (startTimeRef.current) {
+        setDebugMetrics((prev) => ({
+          ...prev,
+          elapsedMs: Date.now() - startTimeRef.current!,
+        }));
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [isLoading]);
 
   const parsedResponse = useMemo<ParsedAIResponse>(() => {
     if (!completion) {
@@ -76,7 +102,12 @@ export function useStreamingResponse() {
 
   const handleSubmit = useCallback(
     async (description: string) => {
-      console.log("[StreamDebug] State transition: input → generating");
+      // Initialize debug metrics before starting the stream (user-initiated action)
+      startTimeRef.current = Date.now();
+      previousCompletionRef.current = "";
+      setDebugMetrics({ chunkCount: 0, bytesReceived: 0, elapsedMs: 0 });
+      console.log("[StreamDebug] Stream started at", new Date().toISOString());
+      console.log("[StreamDebug] State transition: input -> generating");
       await complete(description, {
         body: { description },
       });
@@ -88,9 +119,8 @@ export function useStreamingResponse() {
     console.log("[StreamDebug] Resetting stream state");
     setCompletion("");
     startTimeRef.current = null;
-    chunkCountRef.current = 0;
-    bytesReceivedRef.current = 0;
     previousCompletionRef.current = "";
+    setDebugMetrics({ chunkCount: 0, bytesReceived: 0, elapsedMs: null });
   }, [setCompletion]);
 
   const isComplete =
@@ -112,5 +142,9 @@ export function useStreamingResponse() {
     reset,
     parsedResponse,
     isComplete,
+    // Debug metrics
+    chunkCount: debugMetrics.chunkCount,
+    bytesReceived: debugMetrics.bytesReceived,
+    elapsedMs: debugMetrics.elapsedMs,
   };
 }
