@@ -84,6 +84,21 @@ export function FeatureRequestForm() {
     enabled: step === "review" && !!documentId,
   });
 
+  // Auto-save user stories edits with debounce
+  const { saveStatus: storiesSaveStatus, saveNow: saveStoriesNow } =
+    useAutoSave({
+      value: storiesValue,
+      onSave: async (newStories) => {
+        if (!documentId) return;
+        await updatePrdContent({
+          id: documentId,
+          userStories: newStories,
+        });
+      },
+      delay: 500,
+      enabled: step === "review" && !!documentId,
+    });
+
   // Keyboard shortcut: Ctrl+Shift+D to toggle debug panel
   // Only active in development mode
   useKeyboardShortcut({
@@ -280,7 +295,12 @@ export function FeatureRequestForm() {
           saveStatus={prdSaveStatus}
           onBlur={savePrdNow}
         />
-        <UserStoriesEditor stories={storiesValue} onChange={setEditedStories} />
+        <UserStoriesEditor
+          stories={storiesValue}
+          onChange={setEditedStories}
+          saveStatus={storiesSaveStatus}
+          onBlur={saveStoriesNow}
+        />
       </div>
 
       <div className="flex justify-end">

@@ -239,7 +239,7 @@
         "Verify in browser: edit a story, changes persist after refresh"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

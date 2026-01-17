@@ -14,11 +14,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Loader2, Check, AlertCircle } from "lucide-react";
 import type { UserStory } from "@/lib/ai/parse-ai-response";
+import type { SaveStatus } from "@/hooks/use-auto-save";
 
 interface UserStoriesEditorProps {
   stories: UserStory[];
   onChange: (stories: UserStory[]) => void;
+  saveStatus?: SaveStatus;
+  onBlur?: () => void;
 }
 
 const priorityOptions: UserStory["priority"][] = ["high", "medium", "low"];
@@ -33,6 +37,8 @@ const effortOptions: NonNullable<UserStory["estimatedEffort"]>[] = [
 export function UserStoriesEditor({
   stories,
   onChange,
+  saveStatus = "idle",
+  onBlur,
 }: UserStoriesEditorProps) {
   const [activeTab, setActiveTab] = useState<"cards" | "json">("cards");
   const [editingStory, setEditingStory] = useState<UserStory | null>(null);
@@ -89,16 +95,47 @@ export function UserStoriesEditor({
     if (editingStory) {
       updateStory(editingStory.id, editingStory);
       setEditingStory(null);
+      onBlur?.();
     }
-  }, [editingStory, updateStory]);
+  }, [editingStory, updateStory, onBlur]);
+
+  const renderSaveIndicator = () => {
+    if (saveStatus === "idle") return null;
+
+    return (
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        {saveStatus === "saving" && (
+          <>
+            <Loader2 className="h-3 w-3 animate-spin" />
+            <span>Saving...</span>
+          </>
+        )}
+        {saveStatus === "saved" && (
+          <>
+            <Check className="h-3 w-3 text-green-600" />
+            <span className="text-green-600">Saved</span>
+          </>
+        )}
+        {saveStatus === "error" && (
+          <>
+            <AlertCircle className="h-3 w-3 text-red-600" />
+            <span className="text-red-600">Save failed</span>
+          </>
+        )}
+      </div>
+    );
+  };
 
   return (
     <Card className="flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-lg font-medium">User Stories</CardTitle>
-        <Button size="sm" onClick={addStory}>
-          Add Story
-        </Button>
+        <div className="flex items-center gap-3">
+          {renderSaveIndicator()}
+          <Button size="sm" onClick={addStory}>
+            Add Story
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col">
         <Tabs
@@ -135,6 +172,7 @@ export function UserStoriesEditor({
               <Textarea
                 value={JSON.stringify(stories, null, 2)}
                 onChange={(e) => handleJsonChange(e.target.value)}
+                onBlur={onBlur}
                 className="h-[460px] font-mono text-xs resize-none"
                 placeholder="[]"
               />
