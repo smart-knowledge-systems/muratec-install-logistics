@@ -5,6 +5,7 @@ import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useStreamingResponse } from "@/hooks/use-streaming-response";
+import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import {
   extractTitleFromPrd,
   type UserStory,
@@ -34,6 +35,7 @@ export function FeatureRequestForm() {
   const [description, setDescription] = useState("");
   const [editedPrd, setEditedPrd] = useState("");
   const [editedStories, setEditedStories] = useState<UserStory[]>([]);
+  const [isDebugPanelVisible, setIsDebugPanelVisible] = useState(false);
 
   const createFeatureRequest = useMutation(api.featureRequests.create);
 
@@ -50,6 +52,16 @@ export function FeatureRequestForm() {
     bytesReceived,
     elapsedMs,
   } = useStreamingResponse();
+
+  // Keyboard shortcut: Ctrl+Shift+D to toggle debug panel
+  // Only active in development mode
+  useKeyboardShortcut({
+    ctrlKey: true,
+    shiftKey: true,
+    key: "d",
+    onTrigger: () => setIsDebugPanelVisible((prev) => !prev),
+    enabled: process.env.NODE_ENV === "development",
+  });
 
   const handleGenerate = useCallback(() => {
     if (!description.trim()) {
@@ -190,6 +202,7 @@ export function FeatureRequestForm() {
           chunkCount={chunkCount}
           bytesReceived={bytesReceived}
           elapsedMs={elapsedMs}
+          visible={isDebugPanelVisible}
         />
 
         {isComplete && (

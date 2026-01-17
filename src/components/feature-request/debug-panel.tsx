@@ -14,6 +14,7 @@ interface DebugPanelProps {
   chunkCount: number;
   bytesReceived: number;
   elapsedMs: number | null;
+  visible?: boolean;
 }
 
 export function DebugPanel({
@@ -23,6 +24,7 @@ export function DebugPanel({
   chunkCount,
   bytesReceived,
   elapsedMs,
+  visible = false,
 }: DebugPanelProps) {
   // Hook must be called unconditionally before any early returns
   const parsingState = useMemo(() => {
@@ -33,8 +35,8 @@ export function DebugPanel({
     return "complete";
   }, [completion, parsedResponse]);
 
-  // Only render in development (after hooks are called)
-  if (process.env.NODE_ENV !== "development") {
+  // Only render in development when visible (after hooks are called)
+  if (process.env.NODE_ENV !== "development" || !visible) {
     return null;
   }
 
