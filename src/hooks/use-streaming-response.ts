@@ -20,6 +20,12 @@ interface DebugMetrics {
 export function useStreamingResponse() {
   const { user } = useAuth();
   const createDraft = useMutation(api.featureRequests.createDraft);
+  const updateGeneratedContent = useMutation(
+    api.featureRequests.updateGeneratedContent,
+  );
+  const updateGenerationStatus = useMutation(
+    api.featureRequests.updateGenerationStatus,
+  );
   const startTimeRef = useRef<number | null>(null);
   const previousCompletionRef = useRef("");
   const [debugMetrics, setDebugMetrics] = useState<DebugMetrics>({
@@ -31,6 +37,11 @@ export function useStreamingResponse() {
     null,
   );
   const currentDescriptionRef = useRef<string>("");
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSavedContentRef = useRef<{ prd: string; stories: string }>({
+    prd: "",
+    stories: "",
+  });
 
   const { completion, complete, isLoading, error, stop, setCompletion } =
     useCompletion({
@@ -130,6 +141,63 @@ export function useStreamingResponse() {
     return parsed;
   }, [completion]);
 
+  // Debounced Convex updates when parsed content changes
+  useEffect(() => {
+    if (!documentId || !parsedResponse) return;
+
+    const prdContent = parsedResponse.prd || "";
+    const storiesContent = JSON.stringify(parsedResponse.userStories);
+
+    // Check if content has changed
+    const prdChanged = prdContent !== lastSavedContentRef.current.prd;
+    const storiesChanged =
+      storiesContent !== lastSavedContentRef.current.stories;
+
+    if (!prdChanged && !storiesChanged) return;
+
+    // Clear existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Set new debounced update
+    debounceTimerRef.current = setTimeout(() => {
+      const updates: {
+        prdContent?: string;
+        userStories?: typeof parsedResponse.userStories;
+      } = {};
+
+      if (prdChanged) {
+        updates.prdContent = prdContent;
+        lastSavedContentRef.current.prd = prdContent;
+      }
+
+      if (storiesChanged) {
+        updates.userStories = parsedResponse.userStories;
+        lastSavedContentRef.current.stories = storiesContent;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        console.log("[StreamDebug] Updating Convex with:", {
+          hasPrd: !!updates.prdContent,
+          hasStories: !!updates.userStories,
+        });
+        updateGeneratedContent({
+          id: documentId,
+          ...updates,
+        }).catch((err) => {
+          console.error("[StreamDebug] Failed to update content:", err);
+        });
+      }
+    }, 500);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [documentId, parsedResponse, updateGeneratedContent]);
+
   const handleSubmit = useCallback(
     async (description: string) => {
       // Store description for createDraft call
@@ -155,6 +223,11 @@ export function useStreamingResponse() {
     startTimeRef.current = null;
     previousCompletionRef.current = "";
     currentDescriptionRef.current = "";
+    lastSavedContentRef.current = { prd: "", stories: "" };
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
     setDebugMetrics({ chunkCount: 0, bytesReceived: 0, elapsedMs: null });
     setDocumentId(null);
   }, [setCompletion]);
@@ -162,12 +235,19 @@ export function useStreamingResponse() {
   const isComplete =
     parsedResponse.isPrdComplete && parsedResponse.isStoriesComplete;
 
-  // Log state transition to review when complete
+  // Log state transition to review when complete and update generation status
   useEffect(() => {
-    if (isComplete && !isLoading) {
+    if (isComplete && !isLoading && documentId) {
       console.log("[StreamDebug] State transition: generating → review");
+      console.log("[StreamDebug] Setting generationStatus to 'complete'");
+      updateGenerationStatus({
+        id: documentId,
+        generationStatus: "complete",
+      }).catch((err) => {
+        console.error("[StreamDebug] Failed to update generation status:", err);
+      });
     }
-  }, [isComplete, isLoading]);
+  }, [isComplete, isLoading, documentId, updateGenerationStatus]);
 
   return {
     completion,
