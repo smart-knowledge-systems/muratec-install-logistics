@@ -254,7 +254,7 @@
         "Verify in browser: button visible, input opens"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

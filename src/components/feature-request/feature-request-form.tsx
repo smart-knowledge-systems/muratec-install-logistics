@@ -27,6 +27,7 @@ import { PrdEditor } from "./prd-editor";
 import { UserStoriesEditor } from "./user-stories-editor";
 import { SubmitButton } from "./submit-button";
 import { DebugPanel } from "./debug-panel";
+import { RefineWithAi } from "./refine-with-ai";
 
 type Step = "input" | "generating" | "review";
 
@@ -181,6 +182,12 @@ export function FeatureRequestForm() {
     handleStartOver,
   ]);
 
+  const handleRefineSubmit = useCallback((prompt: string) => {
+    // TODO: Implement refinement flow in US-019
+    console.log("Refine prompt submitted:", prompt);
+    toast.info("Refinement feature coming soon!");
+  }, []);
+
   // Input step
   if (step === "input") {
     return (
@@ -287,6 +294,8 @@ export function FeatureRequestForm() {
           disabled={!prdValue.trim() || storiesValue.length === 0}
         />
       </div>
+
+      <RefineWithAi onSubmit={handleRefineSubmit} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <PrdEditor
