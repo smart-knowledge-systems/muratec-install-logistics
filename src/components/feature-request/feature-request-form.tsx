@@ -28,6 +28,7 @@ import { UserStoriesEditor } from "./user-stories-editor";
 import { SubmitButton } from "./submit-button";
 import { DebugPanel } from "./debug-panel";
 import { RefineWithAi } from "./refine-with-ai";
+import { Loader2 } from "lucide-react";
 
 type Step = "input" | "generating" | "review";
 
@@ -45,6 +46,7 @@ export function FeatureRequestForm() {
   const {
     completion,
     handleSubmit,
+    handleRefineSubmit: handleRefineStreamingSubmit,
     isLoading,
     error,
     stop,
@@ -182,11 +184,41 @@ export function FeatureRequestForm() {
     handleStartOver,
   ]);
 
-  const handleRefineSubmit = useCallback((prompt: string) => {
-    // TODO: Implement refinement flow in US-019
-    console.log("Refine prompt submitted:", prompt);
-    toast.info("Refinement feature coming soon!");
-  }, []);
+  const handleRefineSubmit = useCallback(
+    async (prompt: string) => {
+      if (!documentId || !featureRequest) {
+        toast.error("Cannot refine without a feature request");
+        return;
+      }
+
+      try {
+        // Clear local edits so Convex data takes over during regeneration
+        setEditedPrd(null);
+        setEditedStories(null);
+
+        // Call the hook's refinement handler
+        await handleRefineStreamingSubmit(
+          prompt,
+          documentId,
+          featureRequest.prompts ?? [],
+          prdValue,
+          storiesValue,
+        );
+
+        toast.success("Refining your PRD...");
+      } catch (err) {
+        console.error("Failed to start refinement:", err);
+        toast.error("Failed to start refinement. Please try again.");
+      }
+    },
+    [
+      documentId,
+      featureRequest,
+      handleRefineStreamingSubmit,
+      prdValue,
+      storiesValue,
+    ],
+  );
 
   // Input step
   if (step === "input") {
@@ -283,6 +315,9 @@ export function FeatureRequestForm() {
     );
   }
 
+  // Check if we're currently regenerating
+  const isRegenerating = featureRequest?.generationStatus === "generating";
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -298,21 +333,34 @@ export function FeatureRequestForm() {
       <RefineWithAi
         onSubmit={handleRefineSubmit}
         prompts={featureRequest?.prompts}
+        disabled={isRegenerating}
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <PrdEditor
-          value={prdValue}
-          onChange={setEditedPrd}
-          saveStatus={prdSaveStatus}
-          onBlur={savePrdNow}
-        />
-        <UserStoriesEditor
-          stories={storiesValue}
-          onChange={setEditedStories}
-          saveStatus={storiesSaveStatus}
-          onBlur={saveStoriesNow}
-        />
+      <div className={isRegenerating ? "relative" : ""}>
+        {isRegenerating && (
+          <div className="absolute inset-0 bg-background/50 backdrop-blur-sm z-10 flex items-center justify-center">
+            <div className="flex items-center gap-2 bg-card p-4 rounded-lg border shadow-lg">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Regenerating PRD and user stories...</span>
+            </div>
+          </div>
+        )}
+        <div className={isRegenerating ? "opacity-50 pointer-events-none" : ""}>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <PrdEditor
+              value={prdValue}
+              onChange={setEditedPrd}
+              saveStatus={prdSaveStatus}
+              onBlur={savePrdNow}
+            />
+            <UserStoriesEditor
+              stories={storiesValue}
+              onChange={setEditedStories}
+              saveStatus={storiesSaveStatus}
+              onBlur={saveStoriesNow}
+            />
+          </div>
+        </div>
       </div>
 
       <div className="flex justify-end">

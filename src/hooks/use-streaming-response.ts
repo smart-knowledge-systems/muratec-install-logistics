@@ -9,6 +9,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import {
   parseAIResponse,
   type ParsedAIResponse,
+  type UserStory,
 } from "@/lib/ai/parse-ai-response";
 
 interface DebugMetrics {
@@ -26,6 +27,7 @@ export function useStreamingResponse() {
   const updateGenerationStatus = useMutation(
     api.featureRequests.updateGenerationStatus,
   );
+  const addPrompt = useMutation(api.featureRequests.addPrompt);
   const startTimeRef = useRef<number | null>(null);
   const previousCompletionRef = useRef("");
   const [debugMetrics, setDebugMetrics] = useState<DebugMetrics>({
@@ -217,6 +219,62 @@ export function useStreamingResponse() {
     [complete],
   );
 
+  const handleRefineSubmit = useCallback(
+    async (
+      refinementPrompt: string,
+      docId: Id<"featureRequests">,
+      prompts: Array<{ content: string; createdAt: number }>,
+      currentPrd: string,
+      currentStories: UserStory[],
+    ) => {
+      try {
+        // Add prompt to Convex history
+        console.log("[StreamDebug] Adding refinement prompt to Convex");
+        await addPrompt({ id: docId, content: refinementPrompt });
+
+        // Set generation status to 'generating'
+        console.log("[StreamDebug] Setting generationStatus to 'generating'");
+        await updateGenerationStatus({
+          id: docId,
+          generationStatus: "generating",
+        });
+
+        // Store description for logging
+        currentDescriptionRef.current = refinementPrompt;
+
+        // Initialize debug metrics for refinement stream
+        startTimeRef.current = Date.now();
+        previousCompletionRef.current = "";
+        setDebugMetrics({ chunkCount: 0, bytesReceived: 0, elapsedMs: 0 });
+        console.log(
+          "[StreamDebug] Refinement stream started at",
+          new Date().toISOString(),
+        );
+        console.log("[StreamDebug] State transition: review -> generating");
+
+        // Call API with refinement context
+        // Include the new prompt in the prompts array for the API call
+        const allPrompts = [
+          ...prompts,
+          { content: refinementPrompt, createdAt: Date.now() },
+        ];
+        await complete(refinementPrompt, {
+          body: {
+            description: refinementPrompt,
+            isRefinement: true,
+            prompts: allPrompts,
+            currentPrd,
+            currentStories: JSON.stringify(currentStories),
+          },
+        });
+      } catch (err) {
+        console.error("[StreamDebug] Failed to start refinement:", err);
+        throw err; // Re-throw to let caller handle
+      }
+    },
+    [complete, addPrompt, updateGenerationStatus],
+  );
+
   const reset = useCallback(() => {
     console.log("[StreamDebug] Resetting stream state");
     setCompletion("");
@@ -252,6 +310,7 @@ export function useStreamingResponse() {
   return {
     completion,
     handleSubmit,
+    handleRefineSubmit,
     isLoading,
     error,
     stop,
