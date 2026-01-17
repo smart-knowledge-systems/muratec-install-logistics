@@ -3,7 +3,7 @@ import { anthropic } from "@ai-sdk/anthropic";
 
 export const maxDuration = 60;
 
-const systemPrompt = `You are a product manager helping to create detailed Product Requirements Documents (PRDs) and user stories from feature descriptions.
+const baseSystemPrompt = `You are a product manager helping to create detailed Product Requirements Documents (PRDs) and user stories from feature descriptions.
 
 When given a feature description, generate:
 
@@ -78,6 +78,50 @@ Important:
 - Make user stories specific and actionable
 - Keep acceptance criteria measurable and testable`;
 
+function buildSystemPrompt(
+  isRefinement: boolean,
+  prompts: Array<{ content: string; createdAt: number }>,
+  currentPrd: string,
+  currentStories: string,
+): string {
+  if (!isRefinement) {
+    return baseSystemPrompt;
+  }
+
+  let refinementPrompt = baseSystemPrompt + "\n\n---\n\n";
+  refinementPrompt += "**REFINEMENT MODE**\n\n";
+  refinementPrompt +=
+    "You are refining an existing PRD and user stories based on additional user feedback.\n\n";
+
+  if (prompts.length > 0) {
+    refinementPrompt += "**Previous Instructions:**\n";
+    prompts.forEach((prompt, index) => {
+      const date = new Date(prompt.createdAt).toISOString();
+      refinementPrompt += `${index + 1}. [${date}] ${prompt.content}\n`;
+    });
+    refinementPrompt += "\n";
+  }
+
+  if (currentPrd) {
+    refinementPrompt += "**Current PRD:**\n```markdown\n";
+    refinementPrompt += currentPrd;
+    refinementPrompt += "\n```\n\n";
+  }
+
+  if (currentStories) {
+    refinementPrompt += "**Current User Stories:**\n```json\n";
+    refinementPrompt += currentStories;
+    refinementPrompt += "\n```\n\n";
+  }
+
+  refinementPrompt +=
+    "Please update the PRD and user stories based on the new refinement instruction. ";
+  refinementPrompt +=
+    "Maintain the same format (---PRD_START---, ---PRD_END---, ---STORIES_START---, ---STORIES_END---).";
+
+  return refinementPrompt;
+}
+
 export async function POST(req: Request) {
   const startTime = Date.now();
   const requestId = `req_${startTime}_${Math.random().toString(36).substring(2, 9)}`;
@@ -89,6 +133,8 @@ export async function POST(req: Request) {
       authorEmail,
       isRefinement = false,
       prompts = [],
+      currentPrd = "",
+      currentStories = "",
     } = body;
 
     // Log request start with metadata
@@ -112,10 +158,21 @@ export async function POST(req: Request) {
       );
     }
 
+    const systemPrompt = buildSystemPrompt(
+      isRefinement,
+      prompts,
+      currentPrd,
+      currentStories,
+    );
+
+    const userPrompt = isRefinement
+      ? `Refinement instruction:\n\n${description}`
+      : `Generate a PRD and user stories for the following feature request:\n\n${description}`;
+
     const result = streamText({
       model: anthropic("claude-opus-4-5-20251101"),
       system: systemPrompt,
-      prompt: `Generate a PRD and user stories for the following feature request:\n\n${description}`,
+      prompt: userPrompt,
       temperature: 0.7,
       maxOutputTokens: 4096,
     });
