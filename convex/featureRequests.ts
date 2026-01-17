@@ -214,3 +214,39 @@ export const updateGenerationStatus = mutation({
     });
   },
 });
+
+export const addPrompt = mutation({
+  args: {
+    id: v.id("featureRequests"),
+    content: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const featureRequest = await ctx.db.get(args.id);
+    if (!featureRequest) {
+      throw new Error("Feature request not found");
+    }
+
+    const now = Date.now();
+    const existingPrompts = featureRequest.prompts ?? [];
+
+    await ctx.db.patch(args.id, {
+      prompts: [...existingPrompts, { content: args.content, createdAt: now }],
+      updatedAt: now,
+    });
+  },
+});
+
+export const submit = mutation({
+  args: {
+    id: v.id("featureRequests"),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+
+    await ctx.db.patch(args.id, {
+      status: "submitted",
+      submittedAt: now,
+      updatedAt: now,
+    });
+  },
+});
