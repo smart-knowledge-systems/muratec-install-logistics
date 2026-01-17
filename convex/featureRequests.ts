@@ -15,9 +15,37 @@ const userStoryValidator = v.object({
       v.literal("S"),
       v.literal("M"),
       v.literal("L"),
-      v.literal("XL")
-    )
+      v.literal("XL"),
+    ),
   ),
+});
+
+export const createDraft = mutation({
+  args: {
+    title: v.string(),
+    description: v.string(),
+    authorId: v.optional(v.id("users")),
+    authorEmail: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+
+    const featureRequestId = await ctx.db.insert("featureRequests", {
+      title: args.title,
+      description: args.description,
+      prdContent: "",
+      userStories: [],
+      status: "draft",
+      generationStatus: "generating",
+      prompts: [{ content: args.description, createdAt: now }],
+      authorId: args.authorId,
+      authorEmail: args.authorEmail,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return featureRequestId;
+  },
 });
 
 export const create = mutation({
@@ -62,7 +90,7 @@ export const updateStatus = mutation({
       v.literal("approved"),
       v.literal("rejected"),
       v.literal("in_progress"),
-      v.literal("completed")
+      v.literal("completed"),
     ),
   },
   handler: async (ctx, args) => {
@@ -83,7 +111,7 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
     const filteredUpdates = Object.fromEntries(
-      Object.entries(updates).filter(([, value]) => value !== undefined)
+      Object.entries(updates).filter(([, value]) => value !== undefined),
     );
 
     if (Object.keys(filteredUpdates).length > 0) {
@@ -112,8 +140,8 @@ export const listAll = query({
         v.literal("approved"),
         v.literal("rejected"),
         v.literal("in_progress"),
-        v.literal("completed")
-      )
+        v.literal("completed"),
+      ),
     ),
   },
   handler: async (ctx, args) => {
