@@ -9,9 +9,10 @@ import {
 } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 
 interface User {
-  _id: string;
+  _id: Id<"users">;
   email: string;
   name?: string;
   role: "user" | "admin";

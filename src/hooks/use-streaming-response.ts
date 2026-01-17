@@ -2,6 +2,10 @@
 
 import { useCompletion } from "@ai-sdk/react";
 import { useCallback, useMemo, useRef, useEffect, useState } from "react";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { useAuth } from "@/lib/auth/auth-context";
+import type { Id } from "@/convex/_generated/dataModel";
 import {
   parseAIResponse,
   type ParsedAIResponse,
@@ -14,6 +18,8 @@ interface DebugMetrics {
 }
 
 export function useStreamingResponse() {
+  const { user } = useAuth();
+  const createDraft = useMutation(api.featureRequests.createDraft);
   const startTimeRef = useRef<number | null>(null);
   const previousCompletionRef = useRef("");
   const [debugMetrics, setDebugMetrics] = useState<DebugMetrics>({
@@ -21,6 +27,10 @@ export function useStreamingResponse() {
     bytesReceived: 0,
     elapsedMs: null,
   });
+  const [documentId, setDocumentId] = useState<Id<"featureRequests"> | null>(
+    null,
+  );
+  const currentDescriptionRef = useRef<string>("");
 
   const { completion, complete, isLoading, error, stop, setCompletion } =
     useCompletion({
@@ -53,6 +63,26 @@ export function useStreamingResponse() {
           `[StreamDebug] Chunk ${newCount}: ${chunkBytes} bytes at`,
           new Date().toISOString(),
         );
+
+        // On first chunk, create the draft document
+        if (newCount === 1 && !documentId && user?.email) {
+          const description = currentDescriptionRef.current;
+          console.log("[StreamDebug] Creating draft document on first chunk");
+          createDraft({
+            title: "Untitled Feature Request",
+            description,
+            authorId: user._id,
+            authorEmail: user.email,
+          })
+            .then((id) => {
+              console.log("[StreamDebug] Draft created with ID:", id);
+              setDocumentId(id);
+            })
+            .catch((err) => {
+              console.error("[StreamDebug] Failed to create draft:", err);
+            });
+        }
+
         return {
           ...prev,
           chunkCount: newCount,
@@ -62,7 +92,7 @@ export function useStreamingResponse() {
 
       previousCompletionRef.current = completion;
     }
-  }, [completion]);
+  }, [completion, documentId, user, createDraft]);
 
   // Update elapsed time during streaming using an interval
   useEffect(() => {
@@ -102,10 +132,14 @@ export function useStreamingResponse() {
 
   const handleSubmit = useCallback(
     async (description: string) => {
+      // Store description for createDraft call
+      currentDescriptionRef.current = description;
+
       // Initialize debug metrics before starting the stream (user-initiated action)
       startTimeRef.current = Date.now();
       previousCompletionRef.current = "";
       setDebugMetrics({ chunkCount: 0, bytesReceived: 0, elapsedMs: 0 });
+      setDocumentId(null); // Reset document ID for new request
       console.log("[StreamDebug] Stream started at", new Date().toISOString());
       console.log("[StreamDebug] State transition: input -> generating");
       await complete(description, {
@@ -120,7 +154,9 @@ export function useStreamingResponse() {
     setCompletion("");
     startTimeRef.current = null;
     previousCompletionRef.current = "";
+    currentDescriptionRef.current = "";
     setDebugMetrics({ chunkCount: 0, bytesReceived: 0, elapsedMs: null });
+    setDocumentId(null);
   }, [setCompletion]);
 
   const isComplete =
@@ -142,6 +178,7 @@ export function useStreamingResponse() {
     reset,
     parsedResponse,
     isComplete,
+    documentId,
     // Debug metrics
     chunkCount: debugMetrics.chunkCount,
     bytesReceived: debugMetrics.bytesReceived,

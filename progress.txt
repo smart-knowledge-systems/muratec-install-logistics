@@ -47,3 +47,8 @@ Status: Claude session completed
 ---
 Iteration 4: 2026-01-16 23:54:08
 Working on: US-011: Add keyboard shortcut toggle for debug panel
+Status: Claude session completed
+---
+Iteration 5: 2026-01-16 23:58:10
+Working on: US-012: Create Convex document on first stream chunk
+Status: Complete - First chunk now triggers createDraft mutation, storing documentId in hook state for subsequent updates. Fixed User._id type to be Id<"users"> for Convex compatibility.
