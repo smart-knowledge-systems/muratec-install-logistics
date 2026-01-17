@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useStreamingResponse } from "@/hooks/use-streaming-response";
@@ -33,8 +33,8 @@ export function FeatureRequestForm() {
   const { user } = useAuth();
   const [step, setStep] = useState<Step>("input");
   const [description, setDescription] = useState("");
-  const [editedPrd, setEditedPrd] = useState("");
-  const [editedStories, setEditedStories] = useState<UserStory[]>([]);
+  const [editedPrd, setEditedPrd] = useState<string | null>(null);
+  const [editedStories, setEditedStories] = useState<UserStory[] | null>(null);
   const [isDebugPanelVisible, setIsDebugPanelVisible] = useState(false);
 
   const createFeatureRequest = useMutation(api.featureRequests.create);
@@ -51,7 +51,22 @@ export function FeatureRequestForm() {
     chunkCount,
     bytesReceived,
     elapsedMs,
+    documentId,
   } = useStreamingResponse();
+
+  // Fetch feature request from Convex when documentId is available
+  const featureRequest = useQuery(
+    api.featureRequests.get,
+    documentId ? { id: documentId } : "skip",
+  );
+
+  // Derive the current PRD and stories values:
+  // - If user has made edits (editedPrd/editedStories not null), use their edits
+  // - Otherwise, use Convex data if available, or fallback to parsed response
+  const prdValue =
+    editedPrd ?? featureRequest?.prdContent ?? parsedResponse.prd ?? "";
+  const storiesValue =
+    editedStories ?? featureRequest?.userStories ?? parsedResponse.userStories;
 
   // Keyboard shortcut: Ctrl+Shift+D to toggle debug panel
   // Only active in development mode
@@ -95,8 +110,8 @@ export function FeatureRequestForm() {
   const handleStartOver = useCallback(() => {
     reset();
     setDescription("");
-    setEditedPrd("");
-    setEditedStories([]);
+    setEditedPrd(null);
+    setEditedStories(null);
     setStep("input");
   }, [reset]);
 
@@ -106,18 +121,18 @@ export function FeatureRequestForm() {
       return;
     }
 
-    if (!editedPrd.trim()) {
+    if (!prdValue.trim()) {
       toast.error("PRD content is required");
       return;
     }
 
     try {
-      const title = extractTitleFromPrd(editedPrd);
+      const title = extractTitleFromPrd(prdValue);
       await createFeatureRequest({
         title,
         description,
-        prdContent: editedPrd,
-        userStories: editedStories,
+        prdContent: prdValue,
+        userStories: storiesValue,
         authorEmail: user.email,
       });
       toast.success("Feature request submitted successfully!");
@@ -128,8 +143,8 @@ export function FeatureRequestForm() {
     }
   }, [
     user,
-    editedPrd,
-    editedStories,
+    prdValue,
+    storiesValue,
     description,
     createFeatureRequest,
     handleStartOver,
@@ -217,6 +232,19 @@ export function FeatureRequestForm() {
   }
 
   // Review step
+  // Show loading state while query is pending
+  if (featureRequest === undefined) {
+    return (
+      <Card>
+        <CardContent className="py-8">
+          <div className="flex items-center justify-center">
+            <p className="text-muted-foreground">Loading feature request...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -225,22 +253,19 @@ export function FeatureRequestForm() {
         </Button>
         <SubmitButton
           onSubmit={handleSubmitRequest}
-          disabled={!editedPrd.trim() || editedStories.length === 0}
+          disabled={!prdValue.trim() || storiesValue.length === 0}
         />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <PrdEditor value={editedPrd} onChange={setEditedPrd} />
-        <UserStoriesEditor
-          stories={editedStories}
-          onChange={setEditedStories}
-        />
+        <PrdEditor value={prdValue} onChange={setEditedPrd} />
+        <UserStoriesEditor stories={storiesValue} onChange={setEditedStories} />
       </div>
 
       <div className="flex justify-end">
         <SubmitButton
           onSubmit={handleSubmitRequest}
-          disabled={!editedPrd.trim() || editedStories.length === 0}
+          disabled={!prdValue.trim() || storiesValue.length === 0}
         />
       </div>
     </div>

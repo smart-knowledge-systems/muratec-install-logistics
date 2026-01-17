@@ -208,7 +208,7 @@
         "Verify in browser: refresh page during generation, content persists"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
