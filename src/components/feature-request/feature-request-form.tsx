@@ -356,22 +356,30 @@ export function FeatureRequestForm() {
           </div>
         )}
         <div className={isRegenerating ? "opacity-50 pointer-events-none" : ""}>
-          <div className="grid gap-6 lg:grid-cols-2">
-            <PrdEditor
-              value={prdValue}
-              onChange={setEditedPrd}
-              saveStatus={prdSaveStatus}
-              onBlur={savePrdNow}
-              featureRequestId={documentId ?? undefined}
-            />
-            <UserStoriesEditor
-              stories={storiesValue}
-              onChange={setEditedStories}
-              saveStatus={storiesSaveStatus}
-              onBlur={saveStoriesNow}
-              disabled={isEditingDisabled}
-              onFieldEdit={handleStoryFieldEdit}
-            />
+          <div className="space-y-8">
+            <div className="space-y-4">
+              <h2 className="text-2xl font-semibold tracking-tight">
+                User Stories
+              </h2>
+              <UserStoriesEditor
+                stories={storiesValue}
+                onChange={setEditedStories}
+                saveStatus={storiesSaveStatus}
+                onBlur={saveStoriesNow}
+                disabled={isEditingDisabled}
+                onFieldEdit={handleStoryFieldEdit}
+              />
+            </div>
+            <div className="space-y-4 border-t pt-8">
+              <h2 className="text-2xl font-semibold tracking-tight">PRD</h2>
+              <PrdEditor
+                value={prdValue}
+                onChange={setEditedPrd}
+                saveStatus={prdSaveStatus}
+                onBlur={savePrdNow}
+                featureRequestId={documentId ?? undefined}
+              />
+            </div>
           </div>
         </div>
       </div>

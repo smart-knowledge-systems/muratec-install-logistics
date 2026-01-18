@@ -473,7 +473,7 @@
         "Verify in browser: stories appear first, PRD below"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
