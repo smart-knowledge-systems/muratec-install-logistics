@@ -160,4 +160,41 @@
   .prose :where(tbody tr):not(:where([class~="not-prose"] *)) {
     @apply border-border;
   }
+
+  /* Tiptap editor styling */
+  .tiptap {
+    @apply outline-none;
+  }
+
+  .tiptap p.is-editor-empty:first-child::before {
+    @apply text-muted-foreground;
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+  }
+
+  .tiptap :where(h1, h2, h3, h4, h5, h6) {
+    @apply text-foreground font-semibold;
+  }
+
+  .tiptap :where(a) {
+    @apply text-primary underline decoration-primary/30 hover:decoration-primary;
+  }
+
+  .tiptap :where(strong) {
+    @apply text-foreground font-semibold;
+  }
+
+  .tiptap :where(code) {
+    @apply text-foreground bg-muted px-1.5 py-0.5 rounded-sm;
+  }
+
+  .tiptap :where(blockquote) {
+    @apply border-l-primary/30 text-muted-foreground;
+  }
+
+  .tiptap :where(hr) {
+    @apply border-border;
+  }
 }

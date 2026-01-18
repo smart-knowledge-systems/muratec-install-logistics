@@ -505,7 +505,7 @@
         "bun check passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "Dependencies must be installed before creating components",
       "referenceSpec": "tasks/prd-prd-display-editor-improvements.md"
     },
@@ -522,7 +522,7 @@
         "bun check passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "referenceSpec": "tasks/prd-prd-display-editor-improvements.md"
     },
