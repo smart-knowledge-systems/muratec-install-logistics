@@ -348,7 +348,7 @@
         "bun check passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -475,6 +475,124 @@
       "priority": 5,
       "passes": false,
       "notes": ""
+    },
+    {
+      "id": "US-032",
+      "title": "Add Tailwind typography plugin for prose styling",
+      "description": "As a user, I want markdown content to display with proper heading sizes and formatting",
+      "acceptanceCriteria": [
+        "Install @tailwindcss/typography package",
+        "Configure typography plugin in Tailwind config or globals.css",
+        "Headings h1-h6 display with distinct font sizes",
+        "Lists, blockquotes, and code blocks render with proper styling",
+        "Dark mode works with prose-invert",
+        "bun check passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Foundation story - must be done first for visual testing of subsequent stories",
+      "referenceSpec": "tasks/prd-prd-display-editor-improvements.md"
+    },
+    {
+      "id": "US-033",
+      "title": "Install Tiptap editor dependencies",
+      "description": "As a developer, I need Tiptap packages installed for the rich text editor",
+      "acceptanceCriteria": [
+        "Install @tiptap/react, @tiptap/starter-kit, @tiptap/pm",
+        "Install @tiptap/extension-placeholder for placeholder text",
+        "Install tiptap-markdown for markdown serialization",
+        "All packages resolve without conflicts",
+        "bun check passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Dependencies must be installed before creating components",
+      "referenceSpec": "tasks/prd-prd-display-editor-improvements.md"
+    },
+    {
+      "id": "US-034",
+      "title": "Create base TiptapEditor component",
+      "description": "As a developer, I need a reusable Tiptap editor component",
+      "acceptanceCriteria": [
+        "Create src/components/ui/tiptap-editor.tsx",
+        "Component accepts value (markdown string) and onChange props",
+        "Uses tiptap-markdown to convert markdown to/from Tiptap document",
+        "Applies prose styling to match preview appearance",
+        "Supports dark mode via theme classes",
+        "bun check passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "referenceSpec": "tasks/prd-prd-display-editor-improvements.md"
+    },
+    {
+      "id": "US-035",
+      "title": "Add keyboard shortcuts to TiptapEditor",
+      "description": "As a user, I want to use keyboard shortcuts for common formatting",
+      "acceptanceCriteria": [
+        "Ctrl/Cmd+B toggles bold text",
+        "Ctrl/Cmd+I toggles italic text",
+        "Ctrl/Cmd+Shift+1 sets heading level 1",
+        "Ctrl/Cmd+Shift+2 sets heading level 2",
+        "Shortcuts work on both Mac and Windows",
+        "bun check passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "referenceSpec": "tasks/prd-prd-display-editor-improvements.md"
+    },
+    {
+      "id": "US-036",
+      "title": "Add floating toolbar to TiptapEditor",
+      "description": "As a user, I want a minimal toolbar when I select text for formatting",
+      "acceptanceCriteria": [
+        "Floating toolbar appears when text is selected",
+        "Toolbar includes: bold, italic, heading dropdown, bullet list, numbered list, code",
+        "Toolbar disappears when selection is cleared",
+        "Toolbar uses shadcn styling to match app theme",
+        "bun check passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "referenceSpec": "tasks/prd-prd-display-editor-improvements.md"
+    },
+    {
+      "id": "US-037",
+      "title": "Integrate TiptapEditor into PrdEditor component",
+      "description": "As a user, I want the PRD edit tab to use the rich text editor",
+      "acceptanceCriteria": [
+        "Replace Textarea in edit tab with TiptapEditor component",
+        "Editor receives markdown and outputs markdown on change",
+        "Auto-save continues to work with 500ms debounce",
+        "Save indicator shows saving/saved status",
+        "onBlur triggers immediate save",
+        "bun check passes",
+        "Verify in browser: type # Hello, see it render as heading inline"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "referenceSpec": "tasks/prd-prd-display-editor-improvements.md"
+    },
+    {
+      "id": "US-038",
+      "title": "Update PRD display pages with typography styles",
+      "description": "As a user, I want proper heading display on feature request detail pages",
+      "acceptanceCriteria": [
+        "src/app/feature-requests/[id]/page.tsx uses prose styling",
+        "src/app/admin/feature-requests/[id]/page.tsx uses prose styling",
+        "Headings render with proper visual hierarchy",
+        "All markdown elements display correctly",
+        "bun check passes",
+        "Verify in browser: headings show different sizes on detail pages"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "referenceSpec": "tasks/prd-prd-display-editor-improvements.md"
     }
   ]
 }
