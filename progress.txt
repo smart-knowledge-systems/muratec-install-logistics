@@ -169,3 +169,20 @@ Iteration 8: 2026-01-17 22:45:41
 Working on: US-026: Add edit status restriction to story editor
 Status: Complete - Implemented cascading disabled state through three component layers (FeatureRequestForm → UserStoriesEditor → CollapsibleStoryCard). Stories can now only be edited when status is 'draft' or 'in_review'. All form inputs, buttons, and JSON view properly disabled for other statuses. Key lesson: Prop cascading pattern works well for cross-cutting concerns like read-only states, keeping logic centralized at the data-fetching level.
 Status: Claude session completed
+Status: Claude session completed
+---
+Iteration 9: 2026-01-17 22:51:09
+Working on: US-027: Track story field edit events in analytics
+Status: Claude session completed
+---
+Iteration 10: 2026-01-17 22:54:24
+Working on: US-027: Track story field edit events in analytics
+Status: Claude session completed
+---
+Iteration 11: 2026-01-17 22:57:00
+Working on: US-027: Track story field edit events in analytics
+Status: Claude session completed
+---
+Iteration 12: 2026-01-17 23:00:08
+Working on: US-027: Track story field edit events in analytics
+Status: Complete - Added analytics tracking to all story field edits via onFieldEdit callback pattern. Text fields track on blur, select fields track on change. Each field type (title, asA, iWant, soThat, priority, estimatedEffort, acceptanceCriteria) properly identified in analytics events. See docs/dev-log/US-027.md for implementation details.

@@ -20,6 +20,7 @@ interface CollapsibleStoryCardProps {
   defaultExpanded?: boolean;
   onChange?: (updatedStory: UserStory) => void;
   disabled?: boolean;
+  onFieldEdit?: (fieldType: string) => void;
 }
 
 export function CollapsibleStoryCard({
@@ -27,6 +28,7 @@ export function CollapsibleStoryCard({
   defaultExpanded = false,
   onChange,
   disabled = false,
+  onFieldEdit,
 }: CollapsibleStoryCardProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [localStory, setLocalStory] = useState(story);
@@ -107,6 +109,7 @@ export function CollapsibleStoryCard({
               <Input
                 value={localStory.title}
                 onChange={(e) => handleFieldChange("title", e.target.value)}
+                onBlur={() => onFieldEdit?.("title")}
                 placeholder="Story title"
                 disabled={disabled}
               />
@@ -119,12 +122,13 @@ export function CollapsibleStoryCard({
               </label>
               <Select
                 value={localStory.priority}
-                onValueChange={(value) =>
+                onValueChange={(value) => {
                   handleFieldChange(
                     "priority",
                     value as "high" | "medium" | "low",
-                  )
-                }
+                  );
+                  onFieldEdit?.("priority");
+                }}
                 disabled={disabled}
               >
                 <SelectTrigger disabled={disabled}>
@@ -145,12 +149,13 @@ export function CollapsibleStoryCard({
               </label>
               <Select
                 value={localStory.estimatedEffort || ""}
-                onValueChange={(value) =>
+                onValueChange={(value) => {
                   handleFieldChange(
                     "estimatedEffort",
                     value as "XS" | "S" | "M" | "L" | "XL",
-                  )
-                }
+                  );
+                  onFieldEdit?.("estimatedEffort");
+                }}
                 disabled={disabled}
               >
                 <SelectTrigger disabled={disabled}>
@@ -174,6 +179,7 @@ export function CollapsibleStoryCard({
               <Textarea
                 value={localStory.asA}
                 onChange={(e) => handleFieldChange("asA", e.target.value)}
+                onBlur={() => onFieldEdit?.("asA")}
                 placeholder="user role or persona"
                 rows={2}
                 disabled={disabled}
@@ -188,6 +194,7 @@ export function CollapsibleStoryCard({
               <Textarea
                 value={localStory.iWant}
                 onChange={(e) => handleFieldChange("iWant", e.target.value)}
+                onBlur={() => onFieldEdit?.("iWant")}
                 placeholder="what you want to accomplish"
                 rows={2}
                 disabled={disabled}
@@ -202,6 +209,7 @@ export function CollapsibleStoryCard({
               <Textarea
                 value={localStory.soThat}
                 onChange={(e) => handleFieldChange("soThat", e.target.value)}
+                onBlur={() => onFieldEdit?.("soThat")}
                 placeholder="the value or benefit"
                 rows={2}
                 disabled={disabled}
@@ -233,6 +241,7 @@ export function CollapsibleStoryCard({
                       onChange={(e) =>
                         handleCriterionChange(index, e.target.value)
                       }
+                      onBlur={() => onFieldEdit?.("acceptanceCriteria")}
                       placeholder="Acceptance criterion"
                       rows={2}
                       className="flex-1"

@@ -39,6 +39,7 @@ export function FeatureRequestForm() {
 
   const submitFeatureRequest = useMutation(api.featureRequests.submit);
   const updatePrdContent = useMutation(api.featureRequests.update);
+  const incrementEventCount = useMutation(api.analytics.incrementEventCount);
 
   const {
     completion,
@@ -150,6 +151,18 @@ export function FeatureRequestForm() {
     setEditedStories(null);
     setStep("input");
   }, [reset]);
+
+  const handleStoryFieldEdit = useCallback(
+    async (fieldType: string) => {
+      if (!documentId) return;
+      await incrementEventCount({
+        featureRequestId: documentId,
+        eventType: "story_field_edit",
+        fieldType,
+      });
+    },
+    [documentId, incrementEventCount],
+  );
 
   const handleSubmitRequest = useCallback(async () => {
     if (!user?.email) {
@@ -356,6 +369,7 @@ export function FeatureRequestForm() {
               saveStatus={storiesSaveStatus}
               onBlur={saveStoriesNow}
               disabled={isEditingDisabled}
+              onFieldEdit={handleStoryFieldEdit}
             />
           </div>
         </div>

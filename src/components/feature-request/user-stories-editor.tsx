@@ -17,6 +17,7 @@ interface UserStoriesEditorProps {
   saveStatus?: SaveStatus;
   onBlur?: () => void;
   disabled?: boolean;
+  onFieldEdit?: (fieldType: string) => void;
 }
 
 export function UserStoriesEditor({
@@ -25,6 +26,7 @@ export function UserStoriesEditor({
   saveStatus = "idle",
   onBlur,
   disabled = false,
+  onFieldEdit,
 }: UserStoriesEditorProps) {
   const [activeTab, setActiveTab] = useState<"cards" | "json">("cards");
   const [jsonError, setJsonError] = useState<string | null>(null);
@@ -128,6 +130,7 @@ export function UserStoriesEditor({
                       updateStory(updatedStory.id, updatedStory);
                       onBlur?.();
                     }}
+                    onFieldEdit={onFieldEdit}
                     disabled={disabled}
                   />
                 ))}
