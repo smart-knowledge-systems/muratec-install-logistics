@@ -193,3 +193,8 @@ Working on: US-029: Add Read More button to PRD display
 Status: Complete - Created reusable PrdDisplay component that shows condensed view (title + overview) by default with "Read More" button to expand full content. Uses extractPrdOverview utility from US-028. Expanded state persists during session but not in DB. Applied to both user and admin detail pages. Key lesson: Creating a dedicated display component simplified implementation across multiple pages and kept PrdEditor clean.
 Status: Claude session completed
 ---
+Status: Claude session completed
+---
+Iteration 14: 2026-01-17 23:11:59
+Working on: US-037: Integrate TiptapEditor into PrdEditor component
+Status: Complete - Replaced Textarea with TiptapEditor in PrdEditor edit tab. TiptapEditor's onChange already returns markdown string via tiptap-markdown, so no transformation needed. Maintains full compatibility with existing auto-save (500ms debounce, blur triggers immediate save). Users can now format inline while typing (# for headings) and use floating toolbar + keyboard shortcuts (Cmd+B, Cmd+I, Cmd+Shift+1/2). Key lesson: TiptapEditor was well-designed as drop-in replacement for Textarea with same controlled component interface.

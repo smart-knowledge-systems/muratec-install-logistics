@@ -573,7 +573,7 @@
         "Verify in browser: type # Hello, see it render as heading inline"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "referenceSpec": "tasks/prd-prd-display-editor-improvements.md"
     },

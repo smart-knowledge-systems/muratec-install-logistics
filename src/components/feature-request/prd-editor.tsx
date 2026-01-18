@@ -5,7 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
+import { TiptapEditor } from "@/components/ui/tiptap-editor";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Loader2, Check, AlertCircle } from "lucide-react";
@@ -116,11 +116,10 @@ export function PrdEditor({
             </ScrollArea>
           </TabsContent>
           <TabsContent value="edit" className="flex-1 mt-4">
-            <Textarea
+            <TiptapEditor
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={onChange}
               onBlur={onBlur}
-              className="h-[500px] font-mono text-sm resize-none"
               placeholder="Enter PRD content in markdown format..."
             />
           </TabsContent>
