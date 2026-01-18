@@ -44,6 +44,8 @@ export function useStreamingResponse() {
     prd: "",
     stories: "",
   });
+  // Guard against duplicate createDraft calls during race conditions
+  const isCreatingDraftRef = useRef(false);
 
   const { completion, complete, isLoading, error, stop, setCompletion } =
     useCompletion({
@@ -78,7 +80,14 @@ export function useStreamingResponse() {
         );
 
         // On first chunk, create the draft document
-        if (newCount === 1 && !documentId && user?.email) {
+        // Use ref guard to prevent duplicate createDraft calls during race conditions
+        if (
+          newCount === 1 &&
+          !documentId &&
+          !isCreatingDraftRef.current &&
+          user?.email
+        ) {
+          isCreatingDraftRef.current = true; // Set guard immediately (synchronous)
           const description = currentDescriptionRef.current;
           console.log("[StreamDebug] Creating draft document on first chunk");
           createDraft({
@@ -93,6 +102,7 @@ export function useStreamingResponse() {
             })
             .catch((err) => {
               console.error("[StreamDebug] Failed to create draft:", err);
+              isCreatingDraftRef.current = false; // Reset on error to allow retry
             });
         }
 
@@ -210,6 +220,7 @@ export function useStreamingResponse() {
       previousCompletionRef.current = "";
       setDebugMetrics({ chunkCount: 0, bytesReceived: 0, elapsedMs: 0 });
       setDocumentId(null); // Reset document ID for new request
+      isCreatingDraftRef.current = false; // Reset draft creation guard for new request
       console.log("[StreamDebug] Stream started at", new Date().toISOString());
       console.log("[StreamDebug] State transition: input -> generating");
       await complete(description, {
@@ -282,6 +293,7 @@ export function useStreamingResponse() {
     previousCompletionRef.current = "";
     currentDescriptionRef.current = "";
     lastSavedContentRef.current = { prd: "", stories: "" };
+    isCreatingDraftRef.current = false; // Reset draft creation guard
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = null;

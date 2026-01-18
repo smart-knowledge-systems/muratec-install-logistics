@@ -170,11 +170,17 @@ export async function POST(req: Request) {
       : `Generate a PRD and user stories for the following feature request:\n\n${description}`;
 
     const result = streamText({
-      model: anthropic("claude-opus-4-5-20251101"),
+      model: anthropic("claude-sonnet-4-5"),
       system: systemPrompt,
       prompt: userPrompt,
       temperature: 0.7,
       maxOutputTokens: 4096,
+      onError({ error }) {
+        console.error(
+          `[${new Date().toISOString()}] [${requestId}] Stream error:`,
+          error,
+        );
+      },
     });
 
     // Log successful stream initiation
@@ -183,7 +189,7 @@ export async function POST(req: Request) {
       `[${new Date().toISOString()}] [${requestId}] Stream Initiated (${duration}ms)`,
     );
 
-    return result.toTextStreamResponse();
+    return result.toUIMessageStreamResponse();
   } catch (error) {
     const duration = Date.now() - startTime;
 

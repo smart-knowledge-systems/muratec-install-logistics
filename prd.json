@@ -1,8 +1,8 @@
 {
   "project": "MuratecInstallLogistics",
-  "branchName": "ralph/feature-request-observability",
-  "description": "Add dev observability tools, real-time Convex persistence, and iterative refinement for AI feature requests",
-  "referenceSpec": "tasks/prd-feature-request-observability.md",
+  "branchName": "feat/user-stories-review-ux",
+  "description": "User stories review UX improvements with collapsible cards, inline editing, and analytics tracking",
+  "referenceSpec": "tasks/prd-user-stories-review-ux.md",
   "userStories": [
     {
       "id": "US-001",
@@ -302,6 +302,178 @@
       ],
       "priority": 7,
       "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-021",
+      "title": "Add analytics table to Convex schema",
+      "description": "As a developer, I need an analytics table to store interaction counts",
+      "acceptanceCriteria": [
+        "Create analytics table with: featureRequestId, eventType, fieldType (optional), count, updatedAt",
+        "eventType is union of 'prd_read_more' | 'story_field_edit'",
+        "Add index by_feature_request on featureRequestId",
+        "Add index by_event_type on eventType",
+        "Run bunx convex dev --once successfully",
+        "bun check passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Schema change must come first"
+    },
+    {
+      "id": "US-022",
+      "title": "Create incrementEventCount mutation",
+      "description": "As a developer, I need a mutation to increment analytics counts",
+      "acceptanceCriteria": [
+        "incrementEventCount accepts: featureRequestId, eventType, fieldType (optional)",
+        "If record exists for featureRequestId+eventType+fieldType, increment count",
+        "If record doesn't exist, create with count=1",
+        "Update updatedAt timestamp on each call",
+        "bun check passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-023",
+      "title": "Create collapsible story card component",
+      "description": "As a user, I want to expand/collapse individual user story cards",
+      "acceptanceCriteria": [
+        "Create CollapsibleStoryCard component using shadcn Collapsible",
+        "Collapsed state shows: title and priority badge only",
+        "Expanded state shows: all story fields in form layout",
+        "Chevron icon indicates expand/collapse state",
+        "Smooth animation on expand/collapse",
+        "bun check passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-024",
+      "title": "Add inline form editing to story card",
+      "description": "As a user, I want to edit story fields directly without JSON",
+      "acceptanceCriteria": [
+        "Title editable via input field",
+        "asA, iWant, soThat editable via textareas",
+        "Priority editable via select dropdown",
+        "estimatedEffort editable via select dropdown",
+        "Acceptance criteria editable as list with add/remove buttons",
+        "No JSON view or toggle visible",
+        "bun check passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-025",
+      "title": "Update user stories editor with collapsible cards",
+      "description": "As a user, I want the first story expanded and rest collapsed by default",
+      "acceptanceCriteria": [
+        "Replace current story cards with CollapsibleStoryCard",
+        "First story expanded by default",
+        "Remaining stories collapsed by default",
+        "Each card individually expandable/collapsible",
+        "bun check passes",
+        "Verify in browser: first card expanded, others collapsed"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-026",
+      "title": "Add edit status restriction to story editor",
+      "description": "As a user, I should only be able to edit stories in draft or in_review status",
+      "acceptanceCriteria": [
+        "Accept status prop in user stories editor",
+        "Disable all form inputs when status is not 'draft' or 'in_review'",
+        "Show read-only view for other statuses",
+        "bun check passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-027",
+      "title": "Track story field edit events in analytics",
+      "description": "As a product owner, I want to see which story fields users edit most",
+      "acceptanceCriteria": [
+        "Call incrementEventCount on story field blur/save",
+        "eventType is 'story_field_edit'",
+        "fieldType captures which field: title, asA, iWant, soThat, priority, estimatedEffort, acceptanceCriteria",
+        "Increment happens on save, not every keystroke",
+        "bun check passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-028",
+      "title": "Create PRD overview extractor utility",
+      "description": "As a developer, I need a function to extract PRD title and overview",
+      "acceptanceCriteria": [
+        "Create extractPrdOverview function that parses markdown",
+        "Extract first H1 or H2 heading as title",
+        "Extract first paragraph after heading as overview",
+        "Return { title, overview, hasMore } object",
+        "hasMore is true if there's content beyond title+overview",
+        "bun check passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-029",
+      "title": "Add Read More button to PRD display",
+      "description": "As a user, I want to see a condensed PRD with option to expand",
+      "acceptanceCriteria": [
+        "PRD section shows only title and overview by default",
+        "Read More button appears when hasMore is true",
+        "Clicking Read More expands to show full PRD content",
+        "Button text changes to 'Show Less' when expanded",
+        "Expanded state persists during session (not saved to DB)",
+        "bun check passes",
+        "Verify in browser: PRD collapsed by default, expands on click"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-030",
+      "title": "Track PRD read more events in analytics",
+      "description": "As a product owner, I want to know how often users expand the full PRD",
+      "acceptanceCriteria": [
+        "Call incrementEventCount when Read More is clicked",
+        "eventType is 'prd_read_more'",
+        "fieldType is null/undefined for this event type",
+        "Only increment on expand, not on collapse",
+        "bun check passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-031",
+      "title": "Reorder layout to show stories above PRD",
+      "description": "As a user, I want to see user stories prominently above the PRD",
+      "acceptanceCriteria": [
+        "User stories section displayed above PRD section in review phase",
+        "Clear visual separation between sections",
+        "Section headers for 'User Stories' and 'PRD'",
+        "bun check passes",
+        "Verify in browser: stories appear first, PRD below"
+      ],
+      "priority": 5,
+      "passes": false,
       "notes": ""
     }
   ]

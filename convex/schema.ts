@@ -71,4 +71,17 @@ export default defineSchema({
     .index("by_author", ["authorEmail"])
     .index("by_status", ["status"])
     .index("by_created", ["createdAt"]),
+
+  analytics: defineTable({
+    featureRequestId: v.id("featureRequests"),
+    eventType: v.union(
+      v.literal("prd_read_more"),
+      v.literal("story_field_edit"),
+    ),
+    fieldType: v.optional(v.string()),
+    count: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_feature_request", ["featureRequestId"])
+    .index("by_event_type", ["eventType"]),
 });
