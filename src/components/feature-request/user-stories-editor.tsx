@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Check, AlertCircle } from "lucide-react";
-import type { UserStory } from "@/lib/ai/parse-ai-response";
+import { UserStoriesSchema, type UserStory } from "@/lib/ai/parse-ai-response";
 import type { SaveStatus } from "@/hooks/use-auto-save";
 import { CollapsibleStoryCard } from "./collapsible-story-card";
 
@@ -35,11 +35,18 @@ export function UserStoriesEditor({
     (jsonString: string) => {
       try {
         const parsed = JSON.parse(jsonString);
-        if (Array.isArray(parsed)) {
-          onChange(parsed);
+        const validated = UserStoriesSchema.safeParse(parsed);
+        if (validated.success) {
+          onChange(validated.data);
           setJsonError(null);
         } else {
-          setJsonError("Must be an array of user stories");
+          // Show first validation error
+          const firstError = validated.error.issues[0];
+          setJsonError(
+            firstError
+              ? `${firstError.path.join(".")}: ${firstError.message}`
+              : "Invalid user stories format",
+          );
         }
       } catch {
         setJsonError("Invalid JSON format");
@@ -56,7 +63,13 @@ export function UserStoriesEditor({
   );
 
   const addStory = useCallback(() => {
-    const newId = `US-${String(stories.length + 1).padStart(3, "0")}`;
+    // Find max existing ID number to avoid collisions after deletions
+    const maxNum = stories.reduce((max, s) => {
+      const match = s.id.match(/^US-(\d+)$/);
+      const num = match ? parseInt(match[1], 10) : 0;
+      return Math.max(max, num);
+    }, 0);
+    const newId = `US-${String(maxNum + 1).padStart(3, "0")}`;
     const newStory: UserStory = {
       id: newId,
       title: "New User Story",

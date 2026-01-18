@@ -29,3 +29,34 @@ export const GENERATION_STATUS_VALUES = [
   "error",
 ] as const;
 export type GenerationStatus = (typeof GENERATION_STATUS_VALUES)[number];
+
+/**
+ * AI generation configuration constants.
+ * Used in API route and streaming hook.
+ */
+export const AI_CONFIG = {
+  /** Maximum length of feature description input */
+  MAX_DESCRIPTION_LENGTH: 10000,
+  /** Maximum length of PRD content */
+  MAX_PRD_LENGTH: 50000,
+  /** Maximum prompts to include in refinement context */
+  MAX_PROMPTS_IN_CONTEXT: 10,
+  /** Maximum total prompts allowed per feature request */
+  MAX_PROMPTS_TOTAL: 50,
+  /** AI model temperature (0-1, higher = more creative) */
+  TEMPERATURE: 0.7,
+  /** Maximum tokens in AI response */
+  MAX_OUTPUT_TOKENS: 4096,
+} as const;
+
+/**
+ * Timing constants for debouncing and intervals.
+ */
+export const TIMING = {
+  /** Delay before auto-saving edits (ms) */
+  AUTO_SAVE_DELAY_MS: 500,
+  /** Delay before updating Convex during streaming (ms) */
+  DEBOUNCE_DELAY_MS: 500,
+  /** Interval for updating elapsed time display (ms) */
+  ELAPSED_UPDATE_INTERVAL_MS: 100,
+} as const;

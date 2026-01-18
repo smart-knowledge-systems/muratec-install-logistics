@@ -1,12 +1,16 @@
 import { streamText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
+import { AI_CONFIG } from "@/lib/ai/types";
 
 export const maxDuration = 60;
 
 // Request validation schema
 const GeneratePrdRequestSchema = z.object({
-  description: z.string().min(1, "Description is required").max(10000),
+  description: z
+    .string()
+    .min(1, "Description is required")
+    .max(AI_CONFIG.MAX_DESCRIPTION_LENGTH),
   authorEmail: z.string().email().optional(),
   isRefinement: z.boolean().default(false),
   prompts: z
@@ -16,13 +20,11 @@ const GeneratePrdRequestSchema = z.object({
         createdAt: z.number(),
       }),
     )
-    .max(50)
+    .max(AI_CONFIG.MAX_PROMPTS_TOTAL)
     .default([]),
-  currentPrd: z.string().max(50000).default(""),
-  currentStories: z.string().max(50000).default(""),
+  currentPrd: z.string().max(AI_CONFIG.MAX_PRD_LENGTH).default(""),
+  currentStories: z.string().max(AI_CONFIG.MAX_PRD_LENGTH).default(""),
 });
-
-const MAX_PROMPTS_IN_CONTEXT = 10;
 
 const baseSystemPrompt = `You are a product manager helping to create detailed Product Requirements Documents (PRDs) and user stories from feature descriptions.
 
@@ -116,7 +118,7 @@ function buildSystemPrompt(
 
   if (prompts.length > 0) {
     // Limit to last N prompts to prevent context overflow
-    const recentPrompts = prompts.slice(-MAX_PROMPTS_IN_CONTEXT);
+    const recentPrompts = prompts.slice(-AI_CONFIG.MAX_PROMPTS_IN_CONTEXT);
     if (recentPrompts.length < prompts.length) {
       refinementPrompt += `*Note: Showing ${recentPrompts.length} of ${prompts.length} refinement instructions*\n\n`;
     }
@@ -205,8 +207,8 @@ export async function POST(req: Request) {
       model: anthropic("claude-sonnet-4-5"),
       system: systemPrompt,
       prompt: userPrompt,
-      temperature: 0.7,
-      maxOutputTokens: 4096,
+      temperature: AI_CONFIG.TEMPERATURE,
+      maxOutputTokens: AI_CONFIG.MAX_OUTPUT_TOKENS,
       onError({ error }) {
         console.error(
           `[${new Date().toISOString()}] [${requestId}] Stream error:`,

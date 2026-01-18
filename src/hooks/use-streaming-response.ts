@@ -3,6 +3,7 @@
 import { useCompletion } from "@ai-sdk/react";
 import { useCallback, useMemo, useRef, useEffect, useState } from "react";
 import { useMutation } from "convex/react";
+import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -11,6 +12,7 @@ import {
   type ParsedAIResponse,
   type UserStory,
 } from "@/lib/ai/parse-ai-response";
+import { TIMING } from "@/lib/ai/types";
 
 // Debug logging - only logs in development
 const DEBUG = process.env.NODE_ENV === "development";
@@ -149,7 +151,7 @@ export function useStreamingResponse() {
           elapsedMs: Date.now() - startTimeRef.current!,
         }));
       }
-    }, 100);
+    }, TIMING.ELAPSED_UPDATE_INTERVAL_MS);
 
     return () => clearInterval(interval);
   }, [isLoading]);
@@ -221,9 +223,12 @@ export function useStreamingResponse() {
           ...updates,
         }).catch((err) => {
           debugError("Failed to update content:", err);
+          toast.error("Failed to save changes", {
+            description: "Your edits may not be saved. Please try again.",
+          });
         });
       }
-    }, 500);
+    }, TIMING.DEBOUNCE_DELAY_MS);
 
     return () => {
       if (debounceTimerRef.current) {
@@ -337,8 +342,11 @@ export function useStreamingResponse() {
           // Status update succeeded
         })
         .catch((err) => {
+          debugError("Failed to update generation status:", err);
           if (isMountedRef.current) {
-            debugError("Failed to update generation status:", err);
+            toast.error("Failed to update status", {
+              description: "Generation status could not be saved.",
+            });
           }
         });
     }
