@@ -443,7 +443,7 @@
         "Verify in browser: PRD collapsed by default, expands on click"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

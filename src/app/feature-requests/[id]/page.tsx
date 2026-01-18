@@ -11,8 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { PrdDisplay } from "@/components/feature-request/prd-display";
 import Link from "next/link";
 
 interface FeatureRequestDetailContentProps {
@@ -112,11 +111,7 @@ function FeatureRequestDetailContent({ id }: FeatureRequestDetailContentProps) {
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[600px] pr-4">
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {featureRequest.prdContent}
-                  </ReactMarkdown>
-                </div>
+                <PrdDisplay content={featureRequest.prdContent} />
               </ScrollArea>
             </CardContent>
           </Card>

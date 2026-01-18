@@ -20,8 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { PrdDisplay } from "@/components/feature-request/prd-display";
 import Link from "next/link";
 
 type Status =
@@ -211,11 +210,7 @@ function AdminFeatureRequestDetailContent({
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[600px] pr-4">
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {featureRequest.prdContent}
-                  </ReactMarkdown>
-                </div>
+                <PrdDisplay content={featureRequest.prdContent} />
               </ScrollArea>
             </CardContent>
           </Card>
