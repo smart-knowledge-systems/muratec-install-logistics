@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -121,5 +122,42 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Typography prose styling */
+  .prose {
+    @apply max-w-none text-foreground;
+  }
+
+  .prose :where(h1, h2, h3, h4, h5, h6):not(:where([class~="not-prose"] *)) {
+    @apply text-foreground font-semibold;
+  }
+
+  .prose :where(a):not(:where([class~="not-prose"] *)) {
+    @apply text-primary underline decoration-primary/30 hover:decoration-primary;
+  }
+
+  .prose :where(strong):not(:where([class~="not-prose"] *)) {
+    @apply text-foreground font-semibold;
+  }
+
+  .prose :where(code):not(:where([class~="not-prose"] *)) {
+    @apply text-foreground bg-muted px-1.5 py-0.5 rounded-sm;
+  }
+
+  .prose :where(blockquote):not(:where([class~="not-prose"] *)) {
+    @apply border-l-primary/30 text-muted-foreground;
+  }
+
+  .prose :where(hr):not(:where([class~="not-prose"] *)) {
+    @apply border-border;
+  }
+
+  .prose :where(thead):not(:where([class~="not-prose"] *)) {
+    @apply border-border;
+  }
+
+  .prose :where(tbody tr):not(:where([class~="not-prose"] *)) {
+    @apply border-border;
   }
 }

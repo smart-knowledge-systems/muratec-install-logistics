@@ -489,7 +489,7 @@
         "bun check passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "Foundation story - must be done first for visual testing of subsequent stories",
       "referenceSpec": "tasks/prd-prd-display-editor-improvements.md"
     },
