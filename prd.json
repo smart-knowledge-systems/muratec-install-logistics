@@ -590,7 +590,7 @@
         "Verify in browser: headings show different sizes on detail pages"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "referenceSpec": "tasks/prd-prd-display-editor-improvements.md"
     }
