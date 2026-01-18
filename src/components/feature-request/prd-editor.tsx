@@ -3,6 +3,9 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TiptapEditor } from "@/components/ui/tiptap-editor";
@@ -17,6 +20,7 @@ interface PrdEditorProps {
   onChange: (value: string) => void;
   saveStatus?: SaveStatus;
   onBlur?: () => void;
+  featureRequestId?: Id<"featureRequests">;
 }
 
 export function PrdEditor({
@@ -24,9 +28,21 @@ export function PrdEditor({
   onChange,
   saveStatus = "idle",
   onBlur,
+  featureRequestId,
 }: PrdEditorProps) {
   const [activeTab, setActiveTab] = useState<"preview" | "edit">("preview");
   const [isExpanded, setIsExpanded] = useState(false);
+  const incrementEventCount = useMutation(api.analytics.incrementEventCount);
+
+  const handleReadMore = async () => {
+    setIsExpanded(true);
+    if (featureRequestId) {
+      await incrementEventCount({
+        featureRequestId,
+        eventType: "prd_read_more",
+      });
+    }
+  };
 
   const renderSaveIndicator = () => {
     if (saveStatus === "idle") return null;
@@ -89,7 +105,7 @@ export function PrdEditor({
                         <Button
                           variant="link"
                           className="mt-4 p-0 h-auto"
-                          onClick={() => setIsExpanded(true)}
+                          onClick={handleReadMore}
                         >
                           Read More
                         </Button>

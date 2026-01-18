@@ -210,7 +210,10 @@ function AdminFeatureRequestDetailContent({
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[600px] pr-4">
-                <PrdDisplay content={featureRequest.prdContent} />
+                <PrdDisplay
+                  content={featureRequest.prdContent}
+                  featureRequestId={featureRequest._id}
+                />
               </ScrollArea>
             </CardContent>
           </Card>

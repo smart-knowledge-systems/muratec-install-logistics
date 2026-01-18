@@ -362,6 +362,7 @@ export function FeatureRequestForm() {
               onChange={setEditedPrd}
               saveStatus={prdSaveStatus}
               onBlur={savePrdNow}
+              featureRequestId={documentId ?? undefined}
             />
             <UserStoriesEditor
               stories={storiesValue}
