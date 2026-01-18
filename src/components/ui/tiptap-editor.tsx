@@ -32,7 +32,12 @@ export function TiptapEditor({
       StarterKit.configure({
         heading: {
           levels: [1, 2, 3, 4, 5, 6],
+          // Keyboard shortcuts for headings are automatically configured:
+          // Ctrl/Cmd+Alt+1 through Ctrl/Cmd+Alt+6 for heading levels
+          // However, we want Ctrl/Cmd+Shift+1 and Ctrl/Cmd+Shift+2
+          // These need to be added via custom keyboard shortcuts
         },
+        // Bold (Ctrl/Cmd+B) and Italic (Ctrl/Cmd+I) are included by default
       }),
       Placeholder.configure({
         placeholder,
@@ -53,6 +58,22 @@ export function TiptapEditor({
           "dark:bg-input/30",
           className,
         ),
+      },
+      handleKeyDown: (_view, event) => {
+        // Custom keyboard shortcuts for headings
+        if ((event.metaKey || event.ctrlKey) && event.shiftKey) {
+          if (event.key === "1" || event.key === "!") {
+            event.preventDefault();
+            editor?.chain().focus().toggleHeading({ level: 1 }).run();
+            return true;
+          }
+          if (event.key === "2" || event.key === "@") {
+            event.preventDefault();
+            editor?.chain().focus().toggleHeading({ level: 2 }).run();
+            return true;
+          }
+        }
+        return false;
       },
     },
     onUpdate: ({ editor }) => {

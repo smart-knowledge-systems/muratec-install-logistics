@@ -539,7 +539,7 @@
         "bun check passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "referenceSpec": "tasks/prd-prd-display-editor-improvements.md"
     },
