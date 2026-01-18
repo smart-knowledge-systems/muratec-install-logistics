@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PRIORITY_VALUES, EFFORT_VALUES } from "./types";
 
 export const UserStorySchema = z.object({
   id: z.string(),
@@ -7,8 +8,8 @@ export const UserStorySchema = z.object({
   iWant: z.string(),
   soThat: z.string(),
   acceptanceCriteria: z.array(z.string()),
-  priority: z.enum(["high", "medium", "low"]),
-  estimatedEffort: z.enum(["XS", "S", "M", "L", "XL"]).optional(),
+  priority: z.enum(PRIORITY_VALUES),
+  estimatedEffort: z.enum(EFFORT_VALUES).optional(),
 });
 
 export type UserStory = z.infer<typeof UserStorySchema>;
@@ -21,6 +22,7 @@ export interface ParsedAIResponse {
   isPrdComplete: boolean;
   isStoriesComplete: boolean;
   parseError: string | null;
+  parseWarning: string | null;
 }
 
 const PRD_START = "---PRD_START---";
@@ -35,6 +37,7 @@ export function parseAIResponse(content: string): ParsedAIResponse {
     isPrdComplete: false,
     isStoriesComplete: false,
     parseError: null,
+    parseWarning: null,
   };
 
   // Extract PRD
@@ -92,15 +95,19 @@ export function parseAIResponse(content: string): ParsedAIResponse {
               acceptanceCriteria: Array.isArray(story.acceptanceCriteria)
                 ? story.acceptanceCriteria
                 : [],
-              priority: ["high", "medium", "low"].includes(story.priority)
+              priority: ([...PRIORITY_VALUES] as string[]).includes(
+                story.priority,
+              )
                 ? story.priority
                 : "medium",
-              estimatedEffort: ["XS", "S", "M", "L", "XL"].includes(
+              estimatedEffort: ([...EFFORT_VALUES] as string[]).includes(
                 story.estimatedEffort,
               )
                 ? story.estimatedEffort
                 : undefined,
             }));
+            // Preserve as warning so UI can display data quality issue
+            result.parseWarning = result.parseError;
             result.parseError = null;
           }
         }

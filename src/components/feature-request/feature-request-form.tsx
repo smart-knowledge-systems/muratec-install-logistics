@@ -17,7 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { StreamingDisplay } from "./streaming-display";
 import { PrdEditor } from "./prd-editor";
@@ -25,7 +25,7 @@ import { UserStoriesEditor } from "./user-stories-editor";
 import { SubmitButton } from "./submit-button";
 import { DebugPanel } from "./debug-panel";
 import { RefineWithAi } from "./refine-with-ai";
-import { Loader2 } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 type Step = "input" | "generating" | "review";
 
@@ -311,13 +311,37 @@ export function FeatureRequestForm() {
 
   // Review step
   // Show loading state while query is pending
-  if (featureRequest === undefined) {
+  if (documentId && featureRequest === undefined) {
     return (
       <Card>
         <CardContent className="py-8">
           <div className="flex items-center justify-center">
             <p className="text-muted-foreground">Loading feature request...</p>
           </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show error state if document was not found (deleted or invalid ID)
+  if (documentId && featureRequest === null) {
+    return (
+      <Card>
+        <CardContent className="py-8">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription className="flex items-center gap-2">
+              Feature request not found. It may have been deleted.
+              <Button
+                variant="link"
+                className="p-0 h-auto"
+                onClick={handleStartOver}
+              >
+                Start Over
+              </Button>
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
     );

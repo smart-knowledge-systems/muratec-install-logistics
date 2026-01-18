@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { ChevronDown, ChevronRight, Plus, X } from "lucide-react";
 import type { UserStory } from "@/lib/ai/parse-ai-response";
+import type { Priority, Effort } from "@/lib/ai/types";
 
 interface CollapsibleStoryCardProps {
   story: UserStory;
@@ -33,32 +34,55 @@ export function CollapsibleStoryCard({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [localStory, setLocalStory] = useState(story);
 
-  const handleFieldChange = (
-    field: keyof UserStory,
-    value: string | string[],
+  // Type-safe handlers for string fields
+  const handleStringFieldChange = (
+    field: "title" | "asA" | "iWant" | "soThat",
+    value: string,
   ) => {
     const updatedStory = { ...localStory, [field]: value };
     setLocalStory(updatedStory);
     onChange?.(updatedStory);
   };
 
+  // Type-safe handler for priority
+  const handlePriorityChange = (value: Priority) => {
+    const updatedStory = { ...localStory, priority: value };
+    setLocalStory(updatedStory);
+    onChange?.(updatedStory);
+    onFieldEdit?.("priority");
+  };
+
+  // Type-safe handler for effort
+  const handleEffortChange = (value: Effort) => {
+    const updatedStory = { ...localStory, estimatedEffort: value };
+    setLocalStory(updatedStory);
+    onChange?.(updatedStory);
+    onFieldEdit?.("estimatedEffort");
+  };
+
+  // Type-safe handler for acceptance criteria
+  const handleCriteriaChange = (updatedCriteria: string[]) => {
+    const updatedStory = { ...localStory, acceptanceCriteria: updatedCriteria };
+    setLocalStory(updatedStory);
+    onChange?.(updatedStory);
+  };
+
   const handleAddCriterion = () => {
-    const updatedCriteria = [...localStory.acceptanceCriteria, ""];
-    handleFieldChange("acceptanceCriteria", updatedCriteria);
+    handleCriteriaChange([...localStory.acceptanceCriteria, ""]);
   };
 
   const handleRemoveCriterion = (index: number) => {
     const updatedCriteria = localStory.acceptanceCriteria.filter(
       (_, i) => i !== index,
     );
-    handleFieldChange("acceptanceCriteria", updatedCriteria);
+    handleCriteriaChange(updatedCriteria);
   };
 
   const handleCriterionChange = (index: number, value: string) => {
     const updatedCriteria = localStory.acceptanceCriteria.map((criterion, i) =>
       i === index ? value : criterion,
     );
-    handleFieldChange("acceptanceCriteria", updatedCriteria);
+    handleCriteriaChange(updatedCriteria);
   };
 
   return (
@@ -108,7 +132,9 @@ export function CollapsibleStoryCard({
               </label>
               <Input
                 value={localStory.title}
-                onChange={(e) => handleFieldChange("title", e.target.value)}
+                onChange={(e) =>
+                  handleStringFieldChange("title", e.target.value)
+                }
                 onBlur={() => onFieldEdit?.("title")}
                 placeholder="Story title"
                 disabled={disabled}
@@ -122,13 +148,9 @@ export function CollapsibleStoryCard({
               </label>
               <Select
                 value={localStory.priority}
-                onValueChange={(value) => {
-                  handleFieldChange(
-                    "priority",
-                    value as "high" | "medium" | "low",
-                  );
-                  onFieldEdit?.("priority");
-                }}
+                onValueChange={(value) =>
+                  handlePriorityChange(value as Priority)
+                }
                 disabled={disabled}
               >
                 <SelectTrigger disabled={disabled}>
@@ -149,13 +171,7 @@ export function CollapsibleStoryCard({
               </label>
               <Select
                 value={localStory.estimatedEffort || ""}
-                onValueChange={(value) => {
-                  handleFieldChange(
-                    "estimatedEffort",
-                    value as "XS" | "S" | "M" | "L" | "XL",
-                  );
-                  onFieldEdit?.("estimatedEffort");
-                }}
+                onValueChange={(value) => handleEffortChange(value as Effort)}
                 disabled={disabled}
               >
                 <SelectTrigger disabled={disabled}>
@@ -178,7 +194,7 @@ export function CollapsibleStoryCard({
               </label>
               <Textarea
                 value={localStory.asA}
-                onChange={(e) => handleFieldChange("asA", e.target.value)}
+                onChange={(e) => handleStringFieldChange("asA", e.target.value)}
                 onBlur={() => onFieldEdit?.("asA")}
                 placeholder="user role or persona"
                 rows={2}
@@ -193,7 +209,9 @@ export function CollapsibleStoryCard({
               </label>
               <Textarea
                 value={localStory.iWant}
-                onChange={(e) => handleFieldChange("iWant", e.target.value)}
+                onChange={(e) =>
+                  handleStringFieldChange("iWant", e.target.value)
+                }
                 onBlur={() => onFieldEdit?.("iWant")}
                 placeholder="what you want to accomplish"
                 rows={2}
@@ -208,7 +226,9 @@ export function CollapsibleStoryCard({
               </label>
               <Textarea
                 value={localStory.soThat}
-                onChange={(e) => handleFieldChange("soThat", e.target.value)}
+                onChange={(e) =>
+                  handleStringFieldChange("soThat", e.target.value)
+                }
                 onBlur={() => onFieldEdit?.("soThat")}
                 placeholder="the value or benefit"
                 rows={2}

@@ -109,6 +109,9 @@ export function DebugPanel({
             {parsedResponse.parseError && (
               <Badge variant="destructive">Parse Error</Badge>
             )}
+            {parsedResponse.parseWarning && (
+              <Badge variant="secondary">Parse Warning</Badge>
+            )}
           </div>
           {parsedResponse.userStories.length > 0 && (
             <div className="text-xs text-muted-foreground">
@@ -143,6 +146,21 @@ export function DebugPanel({
               </div>
               <pre className="rounded border border-destructive bg-destructive/10 p-2 font-mono text-xs text-destructive">
                 {parsedResponse.parseError}
+              </pre>
+            </div>
+          </>
+        )}
+
+        {/* Parse Warning */}
+        {parsedResponse.parseWarning && (
+          <>
+            <Separator />
+            <div className="space-y-2">
+              <div className="text-xs font-semibold text-amber-600 dark:text-amber-400">
+                Parse Warning (fallback applied)
+              </div>
+              <pre className="rounded border border-amber-500/50 bg-amber-50 p-2 font-mono text-xs text-amber-700 dark:bg-amber-950/20 dark:text-amber-300">
+                {parsedResponse.parseWarning}
               </pre>
             </div>
           </>

@@ -12,6 +12,15 @@ import {
   type UserStory,
 } from "@/lib/ai/parse-ai-response";
 
+// Debug logging - only logs in development
+const DEBUG = process.env.NODE_ENV === "development";
+const debugLog = (...args: unknown[]) => {
+  if (DEBUG) console.log("[StreamDebug]", ...args);
+};
+const debugError = (...args: unknown[]) => {
+  if (DEBUG) console.error("[StreamDebug]", ...args);
+};
+
 interface DebugMetrics {
   chunkCount: number;
   bytesReceived: number;
@@ -46,6 +55,16 @@ export function useStreamingResponse() {
   });
   // Guard against duplicate createDraft calls during race conditions
   const isCreatingDraftRef = useRef(false);
+  // Guard against state updates on unmounted component
+  const isMountedRef = useRef(true);
+
+  // Cleanup effect to track component mount state
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const { completion, complete, isLoading, error, stop, setCompletion } =
     useCompletion({
@@ -55,8 +74,8 @@ export function useStreamingResponse() {
         if (startTimeRef.current) {
           const elapsed = Date.now() - startTimeRef.current;
           setDebugMetrics((prev) => {
-            console.log(
-              `[StreamDebug] Stream completed in ${elapsed}ms - Total chunks: ${prev.chunkCount}, Total bytes: ${prev.bytesReceived}`,
+            debugLog(
+              `Stream completed in ${elapsed}ms - Total chunks: ${prev.chunkCount}, Total bytes: ${prev.bytesReceived}`,
             );
             return { ...prev, elapsedMs: elapsed };
           });
@@ -74,8 +93,8 @@ export function useStreamingResponse() {
 
       setDebugMetrics((prev) => {
         const newCount = prev.chunkCount + 1;
-        console.log(
-          `[StreamDebug] Chunk ${newCount}: ${chunkBytes} bytes at`,
+        debugLog(
+          `Chunk ${newCount}: ${chunkBytes} bytes at`,
           new Date().toISOString(),
         );
 
@@ -89,7 +108,7 @@ export function useStreamingResponse() {
         ) {
           isCreatingDraftRef.current = true; // Set guard immediately (synchronous)
           const description = currentDescriptionRef.current;
-          console.log("[StreamDebug] Creating draft document on first chunk");
+          debugLog("Creating draft document on first chunk");
           createDraft({
             title: "Untitled Feature Request",
             description,
@@ -97,11 +116,13 @@ export function useStreamingResponse() {
             authorEmail: user.email,
           })
             .then((id) => {
-              console.log("[StreamDebug] Draft created with ID:", id);
-              setDocumentId(id);
+              debugLog("Draft created with ID:", id);
+              if (isMountedRef.current) {
+                setDocumentId(id);
+              }
             })
             .catch((err) => {
-              console.error("[StreamDebug] Failed to create draft:", err);
+              debugError("Failed to create draft:", err);
               isCreatingDraftRef.current = false; // Reset on error to allow retry
             });
         }
@@ -141,13 +162,14 @@ export function useStreamingResponse() {
         isPrdComplete: false,
         isStoriesComplete: false,
         parseError: null,
+        parseWarning: null,
       };
     }
     const parsed = parseAIResponse(completion);
 
     // Log parsing results
-    console.log(
-      `[StreamDebug] Parsing: isPrdComplete=${parsed.isPrdComplete}, isStoriesComplete=${parsed.isStoriesComplete}`,
+    debugLog(
+      `Parsing: isPrdComplete=${parsed.isPrdComplete}, isStoriesComplete=${parsed.isStoriesComplete}`,
     );
 
     return parsed;
@@ -190,7 +212,7 @@ export function useStreamingResponse() {
       }
 
       if (Object.keys(updates).length > 0) {
-        console.log("[StreamDebug] Updating Convex with:", {
+        debugLog("Updating Convex with:", {
           hasPrd: !!updates.prdContent,
           hasStories: !!updates.userStories,
         });
@@ -198,7 +220,7 @@ export function useStreamingResponse() {
           id: documentId,
           ...updates,
         }).catch((err) => {
-          console.error("[StreamDebug] Failed to update content:", err);
+          debugError("Failed to update content:", err);
         });
       }
     }, 500);
@@ -221,8 +243,8 @@ export function useStreamingResponse() {
       setDebugMetrics({ chunkCount: 0, bytesReceived: 0, elapsedMs: 0 });
       setDocumentId(null); // Reset document ID for new request
       isCreatingDraftRef.current = false; // Reset draft creation guard for new request
-      console.log("[StreamDebug] Stream started at", new Date().toISOString());
-      console.log("[StreamDebug] State transition: input -> generating");
+      debugLog("Stream started at", new Date().toISOString());
+      debugLog("State transition: input -> generating");
       await complete(description, {
         body: { description },
       });
@@ -240,11 +262,11 @@ export function useStreamingResponse() {
     ) => {
       try {
         // Add prompt to Convex history
-        console.log("[StreamDebug] Adding refinement prompt to Convex");
+        debugLog("Adding refinement prompt to Convex");
         await addPrompt({ id: docId, content: refinementPrompt });
 
         // Set generation status to 'generating'
-        console.log("[StreamDebug] Setting generationStatus to 'generating'");
+        debugLog("Setting generationStatus to 'generating'");
         await updateGenerationStatus({
           id: docId,
           generationStatus: "generating",
@@ -257,11 +279,8 @@ export function useStreamingResponse() {
         startTimeRef.current = Date.now();
         previousCompletionRef.current = "";
         setDebugMetrics({ chunkCount: 0, bytesReceived: 0, elapsedMs: 0 });
-        console.log(
-          "[StreamDebug] Refinement stream started at",
-          new Date().toISOString(),
-        );
-        console.log("[StreamDebug] State transition: review -> generating");
+        debugLog("Refinement stream started at", new Date().toISOString());
+        debugLog("State transition: review -> generating");
 
         // Call API with refinement context
         // Include the new prompt in the prompts array for the API call
@@ -279,7 +298,7 @@ export function useStreamingResponse() {
           },
         });
       } catch (err) {
-        console.error("[StreamDebug] Failed to start refinement:", err);
+        debugError("Failed to start refinement:", err);
         throw err; // Re-throw to let caller handle
       }
     },
@@ -287,7 +306,7 @@ export function useStreamingResponse() {
   );
 
   const reset = useCallback(() => {
-    console.log("[StreamDebug] Resetting stream state");
+    debugLog("Resetting stream state");
     setCompletion("");
     startTimeRef.current = null;
     previousCompletionRef.current = "";
@@ -308,14 +327,20 @@ export function useStreamingResponse() {
   // Log state transition to review when complete and update generation status
   useEffect(() => {
     if (isComplete && !isLoading && documentId) {
-      console.log("[StreamDebug] State transition: generating → review");
-      console.log("[StreamDebug] Setting generationStatus to 'complete'");
+      debugLog("State transition: generating → review");
+      debugLog("Setting generationStatus to 'complete'");
       updateGenerationStatus({
         id: documentId,
         generationStatus: "complete",
-      }).catch((err) => {
-        console.error("[StreamDebug] Failed to update generation status:", err);
-      });
+      })
+        .then(() => {
+          // Status update succeeded
+        })
+        .catch((err) => {
+          if (isMountedRef.current) {
+            debugError("Failed to update generation status:", err);
+          }
+        });
     }
   }, [isComplete, isLoading, documentId, updateGenerationStatus]);
 

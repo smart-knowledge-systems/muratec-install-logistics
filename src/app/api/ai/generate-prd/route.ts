@@ -1,7 +1,28 @@
 import { streamText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
+import { z } from "zod";
 
 export const maxDuration = 60;
+
+// Request validation schema
+const GeneratePrdRequestSchema = z.object({
+  description: z.string().min(1, "Description is required").max(10000),
+  authorEmail: z.string().email().optional(),
+  isRefinement: z.boolean().default(false),
+  prompts: z
+    .array(
+      z.object({
+        content: z.string(),
+        createdAt: z.number(),
+      }),
+    )
+    .max(50)
+    .default([]),
+  currentPrd: z.string().max(50000).default(""),
+  currentStories: z.string().max(50000).default(""),
+});
+
+const MAX_PROMPTS_IN_CONTEXT = 10;
 
 const baseSystemPrompt = `You are a product manager helping to create detailed Product Requirements Documents (PRDs) and user stories from feature descriptions.
 
@@ -94,8 +115,13 @@ function buildSystemPrompt(
     "You are refining an existing PRD and user stories based on additional user feedback.\n\n";
 
   if (prompts.length > 0) {
+    // Limit to last N prompts to prevent context overflow
+    const recentPrompts = prompts.slice(-MAX_PROMPTS_IN_CONTEXT);
+    if (recentPrompts.length < prompts.length) {
+      refinementPrompt += `*Note: Showing ${recentPrompts.length} of ${prompts.length} refinement instructions*\n\n`;
+    }
     refinementPrompt += "**Previous Instructions:**\n";
-    prompts.forEach((prompt, index) => {
+    recentPrompts.forEach((prompt, index) => {
       const date = new Date(prompt.createdAt).toISOString();
       refinementPrompt += `${index + 1}. [${date}] ${prompt.content}\n`;
     });
@@ -128,14 +154,30 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
+
+    // Validate request body with Zod
+    const parseResult = GeneratePrdRequestSchema.safeParse(body);
+    if (!parseResult.success) {
+      const errorMessage =
+        parseResult.error.issues[0]?.message ?? "Invalid request";
+      console.error(
+        `[${new Date().toISOString()}] [${requestId}] Validation Error:`,
+        parseResult.error.issues,
+      );
+      return new Response(JSON.stringify({ error: errorMessage }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     const {
       description,
       authorEmail,
-      isRefinement = false,
-      prompts = [],
-      currentPrd = "",
-      currentStories = "",
-    } = body;
+      isRefinement,
+      prompts,
+      currentPrd,
+      currentStories,
+    } = parseResult.data;
 
     // Log request start with metadata
     console.log(
@@ -143,20 +185,10 @@ export async function POST(req: Request) {
       {
         authorEmail: authorEmail ?? "unknown",
         isRefinement,
-        promptCount: Array.isArray(prompts) ? prompts.length : 0,
+        promptCount: prompts.length,
         hasDescription: !!description,
       },
     );
-
-    if (!description || typeof description !== "string") {
-      console.error(
-        `[${new Date().toISOString()}] [${requestId}] Validation Error: Missing description`,
-      );
-      return new Response(
-        JSON.stringify({ error: "Description is required" }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
-    }
 
     const systemPrompt = buildSystemPrompt(
       isRefinement,
