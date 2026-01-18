@@ -6,6 +6,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import { Markdown, type MarkdownStorage } from "tiptap-markdown";
 import { useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { FloatingToolbar } from "./tiptap-floating-toolbar";
 
 // Extend editor storage type to include the markdown extension storage
 interface EditorStorageWithMarkdown {
@@ -95,5 +96,10 @@ export function TiptapEditor({
     }
   }, [value, editor]);
 
-  return <EditorContent editor={editor} />;
+  return (
+    <div className="relative">
+      <EditorContent editor={editor} />
+      {editor && <FloatingToolbar editor={editor} />}
+    </div>
+  );
 }

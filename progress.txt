@@ -151,3 +151,7 @@ Status: Claude session completed
 ---
 Iteration 4: 2026-01-17 22:30:15
 Working on: US-035: Add keyboard shortcuts to TiptapEditor
+Status: Claude session completed
+---
+Iteration 5: 2026-01-17 22:33:53
+Working on: US-036: Add floating toolbar to TiptapEditor
