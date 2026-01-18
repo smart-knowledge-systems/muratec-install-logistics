@@ -2,19 +2,60 @@
 
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ChevronDown, ChevronRight, Plus, X } from "lucide-react";
 import type { UserStory } from "@/lib/ai/parse-ai-response";
 
 interface CollapsibleStoryCardProps {
   story: UserStory;
   defaultExpanded?: boolean;
+  onChange?: (updatedStory: UserStory) => void;
 }
 
 export function CollapsibleStoryCard({
   story,
   defaultExpanded = false,
+  onChange,
 }: CollapsibleStoryCardProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [localStory, setLocalStory] = useState(story);
+
+  const handleFieldChange = (
+    field: keyof UserStory,
+    value: string | string[],
+  ) => {
+    const updatedStory = { ...localStory, [field]: value };
+    setLocalStory(updatedStory);
+    onChange?.(updatedStory);
+  };
+
+  const handleAddCriterion = () => {
+    const updatedCriteria = [...localStory.acceptanceCriteria, ""];
+    handleFieldChange("acceptanceCriteria", updatedCriteria);
+  };
+
+  const handleRemoveCriterion = (index: number) => {
+    const updatedCriteria = localStory.acceptanceCriteria.filter(
+      (_, i) => i !== index,
+    );
+    handleFieldChange("acceptanceCriteria", updatedCriteria);
+  };
+
+  const handleCriterionChange = (index: number, value: string) => {
+    const updatedCriteria = localStory.acceptanceCriteria.map((criterion, i) =>
+      i === index ? value : criterion,
+    );
+    handleFieldChange("acceptanceCriteria", updatedCriteria);
+  };
 
   return (
     <div className="rounded-lg border bg-card transition-all">
@@ -32,52 +73,180 @@ export function CollapsibleStoryCard({
             )}
           </div>
           <span className="font-mono text-xs text-muted-foreground">
-            {story.id}
+            {localStory.id}
           </span>
           <Badge
             variant={
-              story.priority === "high"
+              localStory.priority === "high"
                 ? "destructive"
-                : story.priority === "medium"
+                : localStory.priority === "medium"
                   ? "default"
                   : "secondary"
             }
           >
-            {story.priority}
+            {localStory.priority}
           </Badge>
-          {story.estimatedEffort && (
-            <Badge variant="outline">{story.estimatedEffort}</Badge>
+          {localStory.estimatedEffort && (
+            <Badge variant="outline">{localStory.estimatedEffort}</Badge>
           )}
-          <h4 className="font-medium">{story.title}</h4>
+          <h4 className="font-medium">{localStory.title}</h4>
         </div>
       </button>
 
-      {/* Expanded Content */}
+      {/* Expanded Content with Form Fields */}
       {isExpanded && (
         <div className="px-4 pb-4 space-y-4 border-t">
-          {/* Story Summary */}
-          <div className="pt-4">
-            <p className="text-sm text-muted-foreground">
-              As a <span className="font-medium">{story.asA || "..."}</span>, I
-              want <span className="font-medium">{story.iWant || "..."}</span>,
-              so that{" "}
-              <span className="font-medium">{story.soThat || "..."}</span>.
-            </p>
-          </div>
-
-          {/* Acceptance Criteria */}
-          {story.acceptanceCriteria.length > 0 && (
-            <div className="text-sm">
-              <p className="font-medium text-muted-foreground mb-2">
-                Acceptance Criteria ({story.acceptanceCriteria.length}):
-              </p>
-              <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                {story.acceptanceCriteria.map((criterion, index) => (
-                  <li key={index}>{criterion}</li>
-                ))}
-              </ul>
+          <div className="pt-4 space-y-4">
+            {/* Title Field */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">
+                Title
+              </label>
+              <Input
+                value={localStory.title}
+                onChange={(e) => handleFieldChange("title", e.target.value)}
+                placeholder="Story title"
+              />
             </div>
-          )}
+
+            {/* Priority Select */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">
+                Priority
+              </label>
+              <Select
+                value={localStory.priority}
+                onValueChange={(value) =>
+                  handleFieldChange(
+                    "priority",
+                    value as "high" | "medium" | "low",
+                  )
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Estimated Effort Select */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">
+                Estimated Effort
+              </label>
+              <Select
+                value={localStory.estimatedEffort || ""}
+                onValueChange={(value) =>
+                  handleFieldChange(
+                    "estimatedEffort",
+                    value as "XS" | "S" | "M" | "L" | "XL",
+                  )
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select effort" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="XS">XS</SelectItem>
+                  <SelectItem value="S">S</SelectItem>
+                  <SelectItem value="M">M</SelectItem>
+                  <SelectItem value="L">L</SelectItem>
+                  <SelectItem value="XL">XL</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* As A Field */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">
+                As a...
+              </label>
+              <Textarea
+                value={localStory.asA}
+                onChange={(e) => handleFieldChange("asA", e.target.value)}
+                placeholder="user role or persona"
+                rows={2}
+              />
+            </div>
+
+            {/* I Want Field */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">
+                I want...
+              </label>
+              <Textarea
+                value={localStory.iWant}
+                onChange={(e) => handleFieldChange("iWant", e.target.value)}
+                placeholder="what you want to accomplish"
+                rows={2}
+              />
+            </div>
+
+            {/* So That Field */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">
+                So that...
+              </label>
+              <Textarea
+                value={localStory.soThat}
+                onChange={(e) => handleFieldChange("soThat", e.target.value)}
+                placeholder="the value or benefit"
+                rows={2}
+              />
+            </div>
+
+            {/* Acceptance Criteria List */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-muted-foreground">
+                  Acceptance Criteria ({localStory.acceptanceCriteria.length})
+                </label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddCriterion}
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Add
+                </Button>
+              </div>
+              <div className="space-y-2">
+                {localStory.acceptanceCriteria.map((criterion, index) => (
+                  <div key={index} className="flex items-start gap-2">
+                    <Textarea
+                      value={criterion}
+                      onChange={(e) =>
+                        handleCriterionChange(index, e.target.value)
+                      }
+                      placeholder="Acceptance criterion"
+                      rows={2}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveCriterion(index)}
+                      className="mt-1"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                {localStory.acceptanceCriteria.length === 0 && (
+                  <p className="text-sm text-muted-foreground italic">
+                    No acceptance criteria yet. Click Add to create one.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
