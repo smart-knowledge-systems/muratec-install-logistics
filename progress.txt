@@ -163,3 +163,9 @@ Status: Claude session completed
 ---
 Iteration 7: 2026-01-17 22:40:58
 Working on: US-025: Update user stories editor with collapsible cards
+Status: Claude session completed
+---
+Iteration 8: 2026-01-17 22:45:41
+Working on: US-026: Add edit status restriction to story editor
+Status: Complete - Implemented cascading disabled state through three component layers (FeatureRequestForm → UserStoriesEditor → CollapsibleStoryCard). Stories can now only be edited when status is 'draft' or 'in_review'. All form inputs, buttons, and JSON view properly disabled for other statuses. Key lesson: Prop cascading pattern works well for cross-cutting concerns like read-only states, keeping logic centralized at the data-fetching level.
+Status: Claude session completed

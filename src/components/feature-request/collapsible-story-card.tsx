@@ -19,12 +19,14 @@ interface CollapsibleStoryCardProps {
   story: UserStory;
   defaultExpanded?: boolean;
   onChange?: (updatedStory: UserStory) => void;
+  disabled?: boolean;
 }
 
 export function CollapsibleStoryCard({
   story,
   defaultExpanded = false,
   onChange,
+  disabled = false,
 }: CollapsibleStoryCardProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [localStory, setLocalStory] = useState(story);
@@ -106,6 +108,7 @@ export function CollapsibleStoryCard({
                 value={localStory.title}
                 onChange={(e) => handleFieldChange("title", e.target.value)}
                 placeholder="Story title"
+                disabled={disabled}
               />
             </div>
 
@@ -122,8 +125,9 @@ export function CollapsibleStoryCard({
                     value as "high" | "medium" | "low",
                   )
                 }
+                disabled={disabled}
               >
-                <SelectTrigger>
+                <SelectTrigger disabled={disabled}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -147,8 +151,9 @@ export function CollapsibleStoryCard({
                     value as "XS" | "S" | "M" | "L" | "XL",
                   )
                 }
+                disabled={disabled}
               >
-                <SelectTrigger>
+                <SelectTrigger disabled={disabled}>
                   <SelectValue placeholder="Select effort" />
                 </SelectTrigger>
                 <SelectContent>
@@ -171,6 +176,7 @@ export function CollapsibleStoryCard({
                 onChange={(e) => handleFieldChange("asA", e.target.value)}
                 placeholder="user role or persona"
                 rows={2}
+                disabled={disabled}
               />
             </div>
 
@@ -184,6 +190,7 @@ export function CollapsibleStoryCard({
                 onChange={(e) => handleFieldChange("iWant", e.target.value)}
                 placeholder="what you want to accomplish"
                 rows={2}
+                disabled={disabled}
               />
             </div>
 
@@ -197,6 +204,7 @@ export function CollapsibleStoryCard({
                 onChange={(e) => handleFieldChange("soThat", e.target.value)}
                 placeholder="the value or benefit"
                 rows={2}
+                disabled={disabled}
               />
             </div>
 
@@ -211,6 +219,7 @@ export function CollapsibleStoryCard({
                   variant="outline"
                   size="sm"
                   onClick={handleAddCriterion}
+                  disabled={disabled}
                 >
                   <Plus className="h-3 w-3 mr-1" />
                   Add
@@ -227,6 +236,7 @@ export function CollapsibleStoryCard({
                       placeholder="Acceptance criterion"
                       rows={2}
                       className="flex-1"
+                      disabled={disabled}
                     />
                     <Button
                       type="button"
@@ -234,6 +244,7 @@ export function CollapsibleStoryCard({
                       size="sm"
                       onClick={() => handleRemoveCriterion(index)}
                       className="mt-1"
+                      disabled={disabled}
                     >
                       <X className="h-4 w-4" />
                     </Button>

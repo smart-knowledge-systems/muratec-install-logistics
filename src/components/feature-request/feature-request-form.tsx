@@ -70,6 +70,11 @@ export function FeatureRequestForm() {
   const storiesValue =
     editedStories ?? featureRequest?.userStories ?? parsedResponse.userStories;
 
+  // Determine if editing should be disabled based on status
+  const isEditingDisabled =
+    featureRequest?.status !== "draft" &&
+    featureRequest?.status !== "in_review";
+
   // Auto-save PRD edits with debounce
   const { saveStatus: prdSaveStatus, saveNow: savePrdNow } = useAutoSave({
     value: prdValue,
@@ -350,6 +355,7 @@ export function FeatureRequestForm() {
               onChange={setEditedStories}
               saveStatus={storiesSaveStatus}
               onBlur={saveStoriesNow}
+              disabled={isEditingDisabled}
             />
           </div>
         </div>

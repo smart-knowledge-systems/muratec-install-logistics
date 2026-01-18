@@ -16,6 +16,7 @@ interface UserStoriesEditorProps {
   onChange: (stories: UserStory[]) => void;
   saveStatus?: SaveStatus;
   onBlur?: () => void;
+  disabled?: boolean;
 }
 
 export function UserStoriesEditor({
@@ -23,6 +24,7 @@ export function UserStoriesEditor({
   onChange,
   saveStatus = "idle",
   onBlur,
+  disabled = false,
 }: UserStoriesEditorProps) {
   const [activeTab, setActiveTab] = useState<"cards" | "json">("cards");
   const [jsonError, setJsonError] = useState<string | null>(null);
@@ -99,7 +101,7 @@ export function UserStoriesEditor({
         <CardTitle className="text-lg font-medium">User Stories</CardTitle>
         <div className="flex items-center gap-3">
           {renderSaveIndicator()}
-          <Button size="sm" onClick={addStory}>
+          <Button size="sm" onClick={addStory} disabled={disabled}>
             Add Story
           </Button>
         </div>
@@ -126,6 +128,7 @@ export function UserStoriesEditor({
                       updateStory(updatedStory.id, updatedStory);
                       onBlur?.();
                     }}
+                    disabled={disabled}
                   />
                 ))}
                 {stories.length === 0 && (
@@ -145,6 +148,7 @@ export function UserStoriesEditor({
                 onBlur={onBlur}
                 className="h-[460px] font-mono text-xs resize-none"
                 placeholder="[]"
+                disabled={disabled}
               />
               {jsonError && (
                 <p className="text-sm text-destructive">{jsonError}</p>
