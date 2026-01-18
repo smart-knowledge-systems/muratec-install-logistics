@@ -123,3 +123,73 @@ export function extractTitleFromPrd(prd: string): string {
   }
   return "Untitled Feature Request";
 }
+
+export interface PrdOverview {
+  title: string;
+  overview: string;
+  hasMore: boolean;
+}
+
+/**
+ * Extracts title and overview from PRD markdown content.
+ * @param prd - The markdown PRD content
+ * @returns Object with title (first H1/H2), overview (first paragraph), and hasMore flag
+ */
+export function extractPrdOverview(prd: string): PrdOverview {
+  if (!prd || prd.trim() === "") {
+    return {
+      title: "Untitled Feature Request",
+      overview: "",
+      hasMore: false,
+    };
+  }
+
+  const lines = prd.split("\n");
+  let title = "";
+  let overview = "";
+  let foundTitle = false;
+  let foundOverview = false;
+  let contentAfterOverview = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+
+    // Extract title (first H1 or H2)
+    if (
+      !foundTitle &&
+      (trimmed.startsWith("# ") || trimmed.startsWith("## "))
+    ) {
+      if (trimmed.startsWith("# ")) {
+        title = trimmed.slice(2).trim();
+      } else {
+        title = trimmed.slice(3).trim();
+      }
+      foundTitle = true;
+      continue;
+    }
+
+    // Extract overview (first non-empty paragraph after title)
+    if (foundTitle && !foundOverview && trimmed.length > 0) {
+      // Skip if it's another heading
+      if (trimmed.startsWith("#")) {
+        continue;
+      }
+
+      overview = trimmed;
+      foundOverview = true;
+      continue;
+    }
+
+    // Check if there's more content after overview
+    if (foundOverview && trimmed.length > 0) {
+      contentAfterOverview = true;
+      break;
+    }
+  }
+
+  return {
+    title: title || "Untitled Feature Request",
+    overview: overview,
+    hasMore: contentAfterOverview,
+  };
+}
