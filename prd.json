@@ -381,7 +381,7 @@
         "Verify in browser: first card expanded, others collapsed"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
