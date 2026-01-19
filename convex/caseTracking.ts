@@ -209,3 +209,20 @@ export const getCaseByNumber = query({
     return caseTracking;
   },
 });
+
+/**
+ * Get all case tracking records for a project
+ */
+export const getCasesByProject = query({
+  args: {
+    projectNumber: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const caseTrackingRecords = await ctx.db
+      .query("caseTracking")
+      .withIndex("by_project", (q) => q.eq("projectNumber", args.projectNumber))
+      .collect();
+
+    return caseTrackingRecords;
+  },
+});
