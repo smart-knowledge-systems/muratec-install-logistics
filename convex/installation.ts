@@ -485,7 +485,9 @@ export const resolveInstallationIssue = mutation({
     // Get existing installation status
     const existing = await ctx.db
       .query("installationStatus")
-      .withIndex("by_supply_item", (q) => q.eq("supplyItemId", args.supplyItemId))
+      .withIndex("by_supply_item", (q) =>
+        q.eq("supplyItemId", args.supplyItemId),
+      )
       .first();
 
     if (!existing || existing.status !== "issue") {
@@ -502,5 +504,60 @@ export const resolveInstallationIssue = mutation({
       status: args.newStatus,
       userId: args.userId,
     });
+  },
+});
+
+/**
+ * Get all open installation issues for a project
+ * Returns items with status='issue' and unresolved issues
+ */
+export const getIssuesByProject = query({
+  args: {
+    projectNumber: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Get all installation statuses with status='issue' for this project
+    const issueStatuses = await ctx.db
+      .query("installationStatus")
+      .withIndex("by_project", (q) => q.eq("projectNumber", args.projectNumber))
+      .filter((q) => q.eq(q.field("status"), "issue"))
+      .collect();
+
+    // Enrich with supply item details
+    const issues = await Promise.all(
+      issueStatuses.map(async (status) => {
+        const supplyItem = await ctx.db.get(status.supplyItemId);
+
+        if (!supplyItem) {
+          return null;
+        }
+
+        return {
+          installationStatusId: status._id,
+          supplyItemId: status.supplyItemId,
+          projectNumber: status.projectNumber,
+          plNumber: status.plNumber,
+          itemNumber: supplyItem.itemNumber,
+          partNumber: supplyItem.partNumber,
+          description: supplyItem.description,
+          quantity: supplyItem.quantity,
+          caseNumber: supplyItem.caseNumber,
+          issueType: status.issueType,
+          issueNotes: status.issueNotes,
+          issuePhotos: status.issuePhotos,
+          issueReportedAt: status.issueReportedAt,
+          issueReportedBy: status.issueReportedBy,
+          updatedAt: status.updatedAt,
+        };
+      }),
+    );
+
+    // Filter out nulls and sort by most recent first
+    const validIssues = issues.filter((issue) => issue !== null);
+    validIssues.sort(
+      (a, b) => (b?.issueReportedAt ?? 0) - (a?.issueReportedAt ?? 0),
+    );
+
+    return validIssues;
   },
 });
