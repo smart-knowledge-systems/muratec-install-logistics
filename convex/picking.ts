@@ -145,6 +145,7 @@ export const updatePickStatus = mutation({
 /**
  * Get pick list for a work package with current statuses
  * Returns items sorted by case location for efficient routing
+ * Includes inventory status to warn about uninventoried cases
  */
 export const getPickListByWorkPackage = query({
   args: {
@@ -160,10 +161,28 @@ export const getPickListByWorkPackage = query({
       )
       .collect();
 
-    // Get supply item details for each task
+    // Get supply item details and inventory status for each task
     const pickListItems = await Promise.all(
       pickingTasks.map(async (task) => {
         const supplyItem = await ctx.db.get(task.supplyItemId);
+
+        // Get case tracking status for inventory info
+        let caseInventoried = false;
+        if (task.caseNumber) {
+          const caseTracking = await ctx.db
+            .query("caseTracking")
+            .withIndex("by_case", (q) =>
+              q
+                .eq("projectNumber", args.projectNumber)
+                .eq("caseNumber", task.caseNumber as string),
+            )
+            .first();
+
+          caseInventoried =
+            caseTracking?.inventoryStatus === "complete" ||
+            caseTracking?.inventoryStatus === "discrepancy";
+        }
+
         return {
           taskId: task._id,
           supplyItemId: task.supplyItemId,
@@ -178,6 +197,7 @@ export const getPickListByWorkPackage = query({
           pickedAt: task.pickedAt,
           pickedBy: task.pickedBy,
           notes: task.notes,
+          caseInventoried,
         };
       }),
     );
@@ -206,6 +226,7 @@ export const getPickListByWorkPackage = query({
 /**
  * Get kit readiness status for a work package
  * Returns complete, partial, or not_started based on picking status
+ * Considers inventory status when determining readiness
  */
 export const getKitReadiness = query({
   args: {
@@ -233,8 +254,32 @@ export const getKitReadiness = query({
         partialItems: 0,
         unavailableItems: 0,
         pendingItems: 0,
+        uninventoriedItems: 0,
         percentComplete: 0,
       };
+    }
+
+    // Check inventory status for each task
+    let uninventoriedItems = 0;
+    for (const task of pickingTasks) {
+      if (task.caseNumber) {
+        const caseTracking = await ctx.db
+          .query("caseTracking")
+          .withIndex("by_case", (q) =>
+            q
+              .eq("projectNumber", args.projectNumber)
+              .eq("caseNumber", task.caseNumber as string),
+          )
+          .first();
+
+        const isInventoried =
+          caseTracking?.inventoryStatus === "complete" ||
+          caseTracking?.inventoryStatus === "discrepancy";
+
+        if (!isInventoried) {
+          uninventoriedItems++;
+        }
+      }
     }
 
     // Count items by status
@@ -251,9 +296,9 @@ export const getKitReadiness = query({
       (task) => task.status === "pending",
     ).length;
 
-    // Determine overall status
+    // Determine overall status (considering inventory)
     let status: "not_started" | "partial" | "complete";
-    if (pickedItems === totalItems) {
+    if (pickedItems === totalItems && uninventoriedItems === 0) {
       status = "complete";
     } else if (pickedItems === 0 && partialItems === 0) {
       status = "not_started";
@@ -290,6 +335,7 @@ export const getKitReadiness = query({
       partialItems,
       unavailableItems,
       pendingItems,
+      uninventoriedItems,
       percentComplete,
     };
   },

@@ -352,6 +352,11 @@ export function PickingContent() {
                     ? "Partial"
                     : "Not Started"}
               </Badge>
+              {kitReadiness.uninventoriedItems > 0 && (
+                <Badge variant="destructive">
+                  {kitReadiness.uninventoriedItems} not inventoried
+                </Badge>
+              )}
             </div>
           </div>
           <Progress value={progressPercent} className="h-2" />
@@ -413,6 +418,12 @@ export function PickingContent() {
                           {item.itemNumber}
                         </span>
                         <StatusBadge status={currentStatus} />
+                        {!item.caseInventoried && (
+                          <Badge variant="destructive" className="text-xs">
+                            <AlertTriangle className="mr-1 h-3 w-3" />
+                            Not Inventoried
+                          </Badge>
+                        )}
                       </div>
                       <div className="text-xs text-muted-foreground">
                         <Hash className="mr-1 inline h-3 w-3" />
@@ -443,6 +454,13 @@ export function PickingContent() {
                       </span>
                     </div>
                   </div>
+
+                  {!item.caseInventoried && (
+                    <div className="mb-3 rounded-md bg-yellow-50 p-2 text-sm text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300">
+                      ⚠️ Warning: Case {item.caseNumber} has not been
+                      inventoried. Proceed with caution.
+                    </div>
+                  )}
 
                   {currentStatus === "partial" && pickedQty && (
                     <div className="mb-3 rounded-md bg-blue-50 p-2 text-sm text-blue-700 dark:bg-blue-950 dark:text-blue-300">
