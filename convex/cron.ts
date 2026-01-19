@@ -10,4 +10,11 @@ crons.daily(
   internal.logisticsJobs.checkDelaysAndArrivals,
 );
 
+// Run daily EVM snapshot job at midnight UTC
+crons.daily(
+  "snapshot daily EVM metrics",
+  { hourUTC: 0, minuteUTC: 0 },
+  internal.evmJobs.snapshotDailyEvm,
+);
+
 export default crons;
