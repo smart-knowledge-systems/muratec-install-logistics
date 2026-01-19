@@ -169,3 +169,49 @@ export const getWorkPackageByPlNumber = query({
     };
   },
 });
+
+/**
+ * Get work packages that have installation issues
+ * Returns work packages with count of items in "issue" status
+ */
+export const getWorkPackagesWithIssues = query({
+  args: {
+    projectNumber: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Get all work packages for the project
+    const workPackages = await ctx.db
+      .query("workPackageSchedule")
+      .withIndex("by_project", (q) => q.eq("projectNumber", args.projectNumber))
+      .collect();
+
+    // Get all installation statuses with issues for this project
+    const issueStatuses = await ctx.db
+      .query("installationStatus")
+      .withIndex("by_project", (q) => q.eq("projectNumber", args.projectNumber))
+      .filter((q) => q.eq(q.field("status"), "issue"))
+      .collect();
+
+    // Count issues per work package
+    const issueCountByWp = new Map<string, number>();
+    for (const status of issueStatuses) {
+      if (status.plNumber) {
+        issueCountByWp.set(
+          status.plNumber,
+          (issueCountByWp.get(status.plNumber) || 0) + 1,
+        );
+      }
+    }
+
+    // Filter to only work packages with issues and add issue count
+    const workPackagesWithIssues = workPackages
+      .filter((wp) => issueCountByWp.has(wp.plNumber))
+      .map((wp) => ({
+        ...wp,
+        issueCount: issueCountByWp.get(wp.plNumber) || 0,
+      }))
+      .sort((a, b) => b.issueCount - a.issueCount); // Sort by issue count descending
+
+    return workPackagesWithIssues;
+  },
+});

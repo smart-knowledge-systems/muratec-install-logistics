@@ -214,6 +214,27 @@ export const bulkUpdateInstallStatus = mutation({
  * Returns supply item details with installation status
  * Includes picking status to show readiness for installation
  */
+/**
+ * Get installation status records for a work package
+ * Returns raw installationStatus records
+ */
+export const getStatusByWorkPackage = query({
+  args: {
+    projectNumber: v.string(),
+    plNumber: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const statuses = await ctx.db
+      .query("installationStatus")
+      .withIndex("by_work_package", (q) =>
+        q.eq("projectNumber", args.projectNumber).eq("plNumber", args.plNumber),
+      )
+      .collect();
+
+    return statuses;
+  },
+});
+
 export const getInstallationStatusByWorkPackage = query({
   args: {
     projectNumber: v.string(),
