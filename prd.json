@@ -35,7 +35,7 @@
         "bun check passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Core backend for supply list views"
     },
     {
