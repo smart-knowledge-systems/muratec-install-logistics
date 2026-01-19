@@ -1,4 +1,9 @@
-import { mutation, query } from "./_generated/server";
+import {
+  mutation,
+  query,
+  type QueryCtx,
+  type MutationCtx,
+} from "./_generated/server";
 import { v } from "convex/values";
 
 /**
@@ -121,62 +126,100 @@ export const addDiscrepancyDetails = mutation({
 });
 
 /**
- * Get inventory verification progress for a case
- * Returns counts of verified/missing/damaged/pending items
- * Also updates case tracking inventory status
+ * Helper to calculate inventory progress for a case (shared by query and mutation)
  */
-export const getCaseInventoryProgress = mutation({
+async function calculateCaseInventoryProgress(
+  ctx: QueryCtx | MutationCtx,
+  args: { projectNumber: string; caseNumber: string },
+) {
+  // Get all expected items for this case
+  const expectedItems = await ctx.db
+    .query("supplyItems")
+    .withIndex("by_case_number", (q) => q.eq("caseNumber", args.caseNumber))
+    .filter((q) => q.eq(q.field("projectNumber"), args.projectNumber))
+    .collect();
+
+  const totalItems = expectedItems.length;
+
+  // Get all inventory items for this case
+  const inventoryItems = await ctx.db
+    .query("inventoryItems")
+    .withIndex("by_case", (q) =>
+      q
+        .eq("projectNumber", args.projectNumber)
+        .eq("caseNumber", args.caseNumber),
+    )
+    .collect();
+
+  // Count by status
+  const verifiedCount = inventoryItems.filter(
+    (item) => item.status === "verified",
+  ).length;
+  const missingCount = inventoryItems.filter(
+    (item) => item.status === "missing",
+  ).length;
+  const damagedCount = inventoryItems.filter(
+    (item) => item.status === "damaged",
+  ).length;
+  const extraCount = inventoryItems.filter(
+    (item) => item.status === "extra",
+  ).length;
+  const pendingCount = totalItems - inventoryItems.length;
+
+  // Determine overall status
+  let overallStatus: "pending" | "in_progress" | "complete" | "discrepancy" =
+    "pending";
+  if (inventoryItems.length === 0) {
+    overallStatus = "pending";
+  } else if (verifiedCount === totalItems) {
+    overallStatus = "complete";
+  } else if (missingCount > 0 || damagedCount > 0 || extraCount > 0) {
+    overallStatus = "discrepancy";
+  } else {
+    overallStatus = "in_progress";
+  }
+
+  return {
+    projectNumber: args.projectNumber,
+    caseNumber: args.caseNumber,
+    totalItems,
+    verifiedCount,
+    missingCount,
+    damagedCount,
+    extraCount,
+    pendingCount,
+    percentComplete:
+      totalItems > 0 ? Math.round((verifiedCount / totalItems) * 100) : 0,
+    overallStatus,
+    lastVerifiedBy: inventoryItems[inventoryItems.length - 1]?.verifiedBy,
+  };
+}
+
+/**
+ * Get inventory verification progress for a case (read-only)
+ * Returns counts of verified/missing/damaged/pending items
+ */
+export const getCaseInventoryProgress = query({
   args: {
     projectNumber: v.string(),
     caseNumber: v.string(),
   },
   handler: async (ctx, args) => {
-    // Get all expected items for this case
-    const expectedItems = await ctx.db
-      .query("supplyItems")
-      .withIndex("by_case_number", (q) => q.eq("caseNumber", args.caseNumber))
-      .filter((q) => q.eq(q.field("projectNumber"), args.projectNumber))
-      .collect();
+    return calculateCaseInventoryProgress(ctx, args);
+  },
+});
 
-    const totalItems = expectedItems.length;
-
-    // Get all inventory items for this case
-    const inventoryItems = await ctx.db
-      .query("inventoryItems")
-      .withIndex("by_case", (q) =>
-        q
-          .eq("projectNumber", args.projectNumber)
-          .eq("caseNumber", args.caseNumber),
-      )
-      .collect();
-
-    // Count by status
-    const verifiedCount = inventoryItems.filter(
-      (item) => item.status === "verified",
-    ).length;
-    const missingCount = inventoryItems.filter(
-      (item) => item.status === "missing",
-    ).length;
-    const damagedCount = inventoryItems.filter(
-      (item) => item.status === "damaged",
-    ).length;
-    const extraCount = inventoryItems.filter(
-      (item) => item.status === "extra",
-    ).length;
-    const pendingCount = totalItems - inventoryItems.length;
-
-    // Determine overall status
-    let overallStatus: "pending" | "in_progress" | "complete" | "discrepancy" =
-      "pending";
-    if (inventoryItems.length === 0) {
-      overallStatus = "pending";
-    } else if (verifiedCount === totalItems) {
-      overallStatus = "complete";
-    } else if (missingCount > 0 || damagedCount > 0 || extraCount > 0) {
-      overallStatus = "discrepancy";
-    } else {
-      overallStatus = "in_progress";
-    }
+/**
+ * Sync case tracking with current inventory status
+ * Call this after making inventory updates to keep case tracking in sync
+ */
+export const syncCaseInventoryStatus = mutation({
+  args: {
+    projectNumber: v.string(),
+    caseNumber: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const progress = await calculateCaseInventoryProgress(ctx, args);
 
     // Update case tracking with inventory status
     const caseTracking = await ctx.db
@@ -190,32 +233,22 @@ export const getCaseInventoryProgress = mutation({
 
     if (caseTracking) {
       await ctx.db.patch(caseTracking._id, {
-        inventoryStatus: overallStatus,
+        inventoryStatus: progress.overallStatus,
         inventoryAt:
-          overallStatus === "complete" || overallStatus === "discrepancy"
+          progress.overallStatus === "complete" ||
+          progress.overallStatus === "discrepancy"
             ? Date.now()
             : caseTracking.inventoryAt,
         inventoryBy:
-          overallStatus === "complete" || overallStatus === "discrepancy"
-            ? inventoryItems[inventoryItems.length - 1]?.verifiedBy
+          progress.overallStatus === "complete" ||
+          progress.overallStatus === "discrepancy"
+            ? progress.lastVerifiedBy
             : caseTracking.inventoryBy,
         updatedAt: Date.now(),
       });
     }
 
-    return {
-      projectNumber: args.projectNumber,
-      caseNumber: args.caseNumber,
-      totalItems,
-      verifiedCount,
-      missingCount,
-      damagedCount,
-      extraCount,
-      pendingCount,
-      percentComplete:
-        totalItems > 0 ? Math.round((verifiedCount / totalItems) * 100) : 0,
-      overallStatus,
-    };
+    return progress;
   },
 });
 

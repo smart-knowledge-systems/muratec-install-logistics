@@ -84,8 +84,8 @@ export function InventoryContent() {
   const addDiscrepancyDetails = useMutation(
     api.fieldOperations.addDiscrepancyDetails,
   );
-  const getCaseProgress = useMutation(
-    api.fieldOperations.getCaseInventoryProgress,
+  const syncCaseProgress = useMutation(
+    api.fieldOperations.syncCaseInventoryStatus,
   );
 
   // Handle case scan/input
@@ -130,7 +130,7 @@ export function InventoryContent() {
       });
 
       // Refresh progress
-      await getCaseProgress({
+      await syncCaseProgress({
         projectNumber: selectedProject,
         caseNumber: selectedCase,
       });
@@ -205,7 +205,7 @@ export function InventoryContent() {
       });
 
       // Refresh progress
-      await getCaseProgress({
+      await syncCaseProgress({
         projectNumber: selectedProject,
         caseNumber: selectedCase,
       });

@@ -2,6 +2,11 @@ import { streamText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
 import { AI_CONFIG } from "@/lib/ai/types";
+import {
+  createRequestEvent,
+  enrichEvent,
+  finalizeEvent,
+} from "@/lib/request-event";
 
 export const maxDuration = 60;
 
@@ -152,7 +157,12 @@ function buildSystemPrompt(
 
 export async function POST(req: Request) {
   const startTime = Date.now();
-  const requestId = `req_${startTime}_${Math.random().toString(36).substring(2, 9)}`;
+
+  // Create wide event for this request
+  const event = createRequestEvent({
+    path: "/api/ai/generate-prd",
+    method: "POST",
+  });
 
   try {
     const body = await req.json();
@@ -162,9 +172,14 @@ export async function POST(req: Request) {
     if (!parseResult.success) {
       const errorMessage =
         parseResult.error.issues[0]?.message ?? "Invalid request";
-      console.error(
-        `[${new Date().toISOString()}] [${requestId}] Validation Error:`,
-        parseResult.error.issues,
+      enrichEvent(event, {
+        validationErrors: parseResult.error.issues,
+      });
+      finalizeEvent(
+        event,
+        "error",
+        startTime,
+        new Error(`Validation: ${errorMessage}`),
       );
       return new Response(JSON.stringify({ error: errorMessage }), {
         status: 400,
@@ -181,16 +196,15 @@ export async function POST(req: Request) {
       currentStories,
     } = parseResult.data;
 
-    // Log request start with metadata
-    console.log(
-      `[${new Date().toISOString()}] [${requestId}] PRD Generation Request Started`,
-      {
-        authorEmail: authorEmail ?? "unknown",
-        isRefinement,
-        promptCount: prompts.length,
-        hasDescription: !!description,
-      },
-    );
+    // Enrich event with business context
+    enrichEvent(event, {
+      userEmail: authorEmail ?? "unknown",
+      isRefinement,
+      promptCount: prompts.length,
+      descriptionLength: description.length,
+      hasPrd: !!currentPrd,
+      hasStories: !!currentStories,
+    });
 
     const systemPrompt = buildSystemPrompt(
       isRefinement,
@@ -210,37 +224,21 @@ export async function POST(req: Request) {
       temperature: AI_CONFIG.TEMPERATURE,
       maxOutputTokens: AI_CONFIG.MAX_OUTPUT_TOKENS,
       onError({ error }) {
-        console.error(
-          `[${new Date().toISOString()}] [${requestId}] Stream error:`,
-          error,
-        );
+        enrichEvent(event, { streamError: String(error) });
       },
     });
 
-    // Log successful stream initiation
-    const duration = Date.now() - startTime;
-    console.log(
-      `[${new Date().toISOString()}] [${requestId}] Stream Initiated (${duration}ms)`,
-    );
+    // Finalize event on successful stream initiation
+    enrichEvent(event, { modelUsed: "claude-sonnet-4-5" });
+    finalizeEvent(event, "success", startTime);
 
     return result.toUIMessageStreamResponse();
   } catch (error) {
-    const duration = Date.now() - startTime;
-
-    // Log errors with full context
-    console.error(
-      `[${new Date().toISOString()}] [${requestId}] Error generating PRD (${duration}ms)`,
-      {
-        error:
-          error instanceof Error
-            ? {
-                message: error.message,
-                stack: error.stack,
-                name: error.name,
-              }
-            : String(error),
-        duration,
-      },
+    finalizeEvent(
+      event,
+      "error",
+      startTime,
+      error instanceof Error ? error : new Error(String(error)),
     );
 
     return new Response(JSON.stringify({ error: "Failed to generate PRD" }), {

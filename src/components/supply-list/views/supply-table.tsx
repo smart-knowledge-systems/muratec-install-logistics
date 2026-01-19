@@ -13,25 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SortableColumn } from "@/convex/lib/types";
-
-// Type definition matching Convex schema
-interface SupplyItem {
-  _id: string;
-  _creationTime: number;
-  rowId: number;
-  itemNumber?: string;
-  partNumber?: string;
-  description?: string;
-  quantity?: number;
-  caseNumber?: string;
-  palletNumber?: string;
-  plNumber?: string;
-  pwbs: string;
-  pwbsName?: string;
-  projectNumber: string;
-  weightKg?: number;
-  isDeleted: boolean;
-}
+import type { SupplyItem } from "@/types/supply-item";
 
 interface SupplyTableProps {
   items: SupplyItem[];

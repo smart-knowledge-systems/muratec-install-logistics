@@ -26,6 +26,50 @@ interface DependencyValidation {
 }
 
 /**
+ * Get effective dependencies for a project by merging defaults with project overrides
+ * Extracted to avoid duplicate logic in validation and downstream calculation
+ */
+async function getEffectiveDependencies(
+  ctx: MutationCtx,
+  projectNumber: string,
+): Promise<Doc<"pwbsDependencies">[]> {
+  // Get all default dependencies
+  const allDeps = await ctx.db
+    .query("pwbsDependencies")
+    .filter((q) => q.eq(q.field("isDefault"), true))
+    .collect();
+
+  // Get project-specific overrides
+  const projectDeps = await ctx.db
+    .query("pwbsDependencies")
+    .withIndex("by_project", (q) => q.eq("projectNumber", projectNumber))
+    .collect();
+
+  // Build override map
+  const overrideMap = new Map<string, Doc<"pwbsDependencies">>();
+  for (const dep of projectDeps) {
+    const key = `${dep.fromPwbs}->${dep.toPwbs}`;
+    overrideMap.set(key, dep);
+  }
+
+  // Merge: use override if exists, otherwise use default
+  const effectiveDeps: Doc<"pwbsDependencies">[] = [];
+  for (const defaultDep of allDeps) {
+    const key = `${defaultDep.fromPwbs}->${defaultDep.toPwbs}`;
+    if (overrideMap.has(key)) {
+      effectiveDeps.push(overrideMap.get(key)!);
+      overrideMap.delete(key);
+    } else {
+      effectiveDeps.push(defaultDep);
+    }
+  }
+  // Add remaining project-specific deps that aren't overrides
+  effectiveDeps.push(...overrideMap.values());
+
+  return effectiveDeps;
+}
+
+/**
  * Validate work package schedule against PWBS dependencies
  * Returns warnings (not hard blocks) for dependency violations
  */
@@ -41,37 +85,8 @@ async function validateDependencies(
 
   const warnings: string[] = [];
 
-  // Get all dependencies (defaults + project overrides)
-  const allDeps = await ctx.db
-    .query("pwbsDependencies")
-    .filter((q) => q.eq(q.field("isDefault"), true))
-    .collect();
-
-  const projectDeps = await ctx.db
-    .query("pwbsDependencies")
-    .withIndex("by_project", (q) => q.eq("projectNumber", projectNumber))
-    .collect();
-
-  // Build override map
-  const overrideMap = new Map<string, Doc<"pwbsDependencies">>();
-  for (const dep of projectDeps) {
-    const key = `${dep.fromPwbs}->${dep.toPwbs}`;
-    overrideMap.set(key, dep);
-  }
-
-  // Get effective dependencies for this work package's PWBS categories
-  const effectiveDeps: Doc<"pwbsDependencies">[] = [];
-  for (const defaultDep of allDeps) {
-    const key = `${defaultDep.fromPwbs}->${defaultDep.toPwbs}`;
-    if (overrideMap.has(key)) {
-      effectiveDeps.push(overrideMap.get(key)!);
-      overrideMap.delete(key);
-    } else {
-      effectiveDeps.push(defaultDep);
-    }
-  }
-  // Add remaining project-specific deps
-  effectiveDeps.push(...overrideMap.values());
+  // Get effective dependencies (defaults merged with project overrides)
+  const effectiveDeps = await getEffectiveDependencies(ctx, projectNumber);
 
   // Check dependencies for each PWBS category in this work package
   for (const pwbs of workPackage.pwbsCategories) {
@@ -142,36 +157,8 @@ async function calculateDownstreamDates(
 
   if (!plannedEnd) return updates;
 
-  // Get all dependencies
-  const allDeps = await ctx.db
-    .query("pwbsDependencies")
-    .filter((q) => q.eq(q.field("isDefault"), true))
-    .collect();
-
-  const projectDeps = await ctx.db
-    .query("pwbsDependencies")
-    .withIndex("by_project", (q) => q.eq("projectNumber", projectNumber))
-    .collect();
-
-  // Build override map
-  const overrideMap = new Map<string, Doc<"pwbsDependencies">>();
-  for (const dep of projectDeps) {
-    const key = `${dep.fromPwbs}->${dep.toPwbs}`;
-    overrideMap.set(key, dep);
-  }
-
-  // Get effective dependencies
-  const effectiveDeps: Doc<"pwbsDependencies">[] = [];
-  for (const defaultDep of allDeps) {
-    const key = `${defaultDep.fromPwbs}->${defaultDep.toPwbs}`;
-    if (overrideMap.has(key)) {
-      effectiveDeps.push(overrideMap.get(key)!);
-      overrideMap.delete(key);
-    } else {
-      effectiveDeps.push(defaultDep);
-    }
-  }
-  effectiveDeps.push(...overrideMap.values());
+  // Get effective dependencies (defaults merged with project overrides)
+  const effectiveDeps = await getEffectiveDependencies(ctx, projectNumber);
 
   // Find dependent work packages (where this WP is a predecessor)
   for (const pwbs of updatedWorkPackage.pwbsCategories) {

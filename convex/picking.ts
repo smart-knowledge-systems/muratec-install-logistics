@@ -282,19 +282,18 @@ export const getKitReadiness = query({
       }
     }
 
-    // Count items by status
-    const pickedItems = pickingTasks.filter(
-      (task) => task.status === "picked",
-    ).length;
-    const partialItems = pickingTasks.filter(
-      (task) => task.status === "partial",
-    ).length;
-    const unavailableItems = pickingTasks.filter(
-      (task) => task.status === "unavailable",
-    ).length;
-    const pendingItems = pickingTasks.filter(
-      (task) => task.status === "pending",
-    ).length;
+    // Count items by status (single pass instead of 4 filter calls)
+    const statusCounts = pickingTasks.reduce(
+      (counts, task) => {
+        counts[task.status] = (counts[task.status] || 0) + 1;
+        return counts;
+      },
+      {} as Record<string, number>,
+    );
+    const pickedItems = statusCounts["picked"] || 0;
+    const partialItems = statusCounts["partial"] || 0;
+    const unavailableItems = statusCounts["unavailable"] || 0;
+    const pendingItems = statusCounts["pending"] || 0;
 
     // Determine overall status (considering inventory)
     let status: "not_started" | "partial" | "complete";

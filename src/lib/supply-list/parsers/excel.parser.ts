@@ -22,11 +22,24 @@ export const ROW_HEADER_EN = 7; // English header row (Rev., Item№, Parts№, 
 export const ROW_HEADER_JP = 8; // Japanese header row (版, ｱｲﾃﾑ№, 品番, ...)
 export const ROW_DATA_START = 9; // First data row
 
-/** Column indices (0-based) for header metadata */
-const COL_DETAIL_ID_VALUE = 15; // Column P
-const COL_JOB_NUMBER = 2; // Column C
-const COL_CUSTOMER = 6; // Column G
-const COL_MODEL_CATEGORY = 15; // Column P (row 6) - model category value (機種)
+/**
+ * Convert column letter (A-Z) to 0-based index
+ * @example columnLetterToIndex('A') => 0, columnLetterToIndex('P') => 15
+ */
+const columnLetterToIndex = (letter: string): number =>
+  letter.toUpperCase().charCodeAt(0) - 65;
+
+/** Column indices (0-based) for header metadata - mapped from column letters */
+const HEADER_COLUMNS = {
+  /** Column P - Detail ID value (明細ID) */
+  DETAIL_ID_VALUE: columnLetterToIndex("P"),
+  /** Column C - Job number */
+  JOB_NUMBER: columnLetterToIndex("C"),
+  /** Column G - Customer name */
+  CUSTOMER: columnLetterToIndex("G"),
+  /** Column P - Model category (機種) on row 6 */
+  MODEL_CATEGORY: columnLetterToIndex("P"),
+} as const;
 
 export interface ExcelParseOptions {
   /** Override the expected sheet name (default: "出荷明細一般") */
@@ -119,12 +132,12 @@ function detectRowDeletion(
 export function extractHeaderMetadata(sheet: WorkSheet): HeaderMetadata {
   // Row 4 (0-indexed: 3) - Detail ID
   // Looking for pattern: Column O = "明細ID", Column P = value
-  const detailIdValue = getCellValue(sheet, 3, COL_DETAIL_ID_VALUE);
+  const detailIdValue = getCellValue(sheet, 3, HEADER_COLUMNS.DETAIL_ID_VALUE);
 
   // Row 6 (0-indexed: 5) - Job number, Customer, Model Category
-  const jobNumber = getCellValue(sheet, 5, COL_JOB_NUMBER);
-  const customer = getCellValue(sheet, 5, COL_CUSTOMER);
-  const modelCategory = getCellValue(sheet, 5, COL_MODEL_CATEGORY);
+  const jobNumber = getCellValue(sheet, 5, HEADER_COLUMNS.JOB_NUMBER);
+  const customer = getCellValue(sheet, 5, HEADER_COLUMNS.CUSTOMER);
+  const modelCategory = getCellValue(sheet, 5, HEADER_COLUMNS.MODEL_CATEGORY);
 
   return {
     detailId: detailIdValue ? String(detailIdValue).trim() : null,
