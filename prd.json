@@ -843,7 +843,7 @@
         "bun check passes"
       ],
       "priority": 50,
-      "passes": false,
+      "passes": true,
       "notes": "PDF generation deferred to future enhancement"
     }
   ]

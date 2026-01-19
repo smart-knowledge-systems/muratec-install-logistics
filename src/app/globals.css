@@ -3,6 +3,57 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@media print {
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .print\:hidden {
+    display: none !important;
+  }
+
+  .print\:border-black {
+    border-color: black !important;
+  }
+
+  .print\:shadow-none {
+    box-shadow: none !important;
+  }
+
+  .print\:text-gray-600 {
+    color: #4b5563 !important;
+  }
+
+  .print\:text-gray-500 {
+    color: #6b7280 !important;
+  }
+
+  .print\:text-gray-700 {
+    color: #374151 !important;
+  }
+
+  .print\:text-red-700 {
+    color: #b91c1c !important;
+  }
+
+  .print\:text-yellow-700 {
+    color: #a16207 !important;
+  }
+
+  .print\:text-green-700 {
+    color: #15803d !important;
+  }
+
+  .print\:p-4 {
+    padding: 1rem !important;
+  }
+
+  .print\:break-inside-avoid {
+    break-inside: avoid !important;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
