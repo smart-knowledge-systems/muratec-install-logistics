@@ -1,14 +1,33 @@
 "use client";
 
 import { useState } from "react";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/lib/auth/auth-context";
 import { SupplyListHeader } from "./supply-list-header";
 import { SupplyListToolbar } from "./supply-list-toolbar";
 import { SupplyListSkeleton } from "./supply-list-skeleton";
+import { SupplyTable } from "./views/supply-table";
 
 export function SupplyListContent() {
   const { user, logout } = useAuth();
-  const [isLoading] = useState(true); // Will be replaced with actual data fetching
+  const [sortBy, setSortBy] = useState<string | undefined>(undefined);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
+  // Fetch supply items with pagination
+  const result = useQuery(api.supplyItems.list, {
+    paginationOpts: { numItems: 50, cursor: null },
+    sortBy,
+    sortOrder,
+  });
+
+  const items = result?.page ?? [];
+  const isLoading = result === undefined;
+
+  const handleSort = (field: string, order: "asc" | "desc") => {
+    setSortBy(field);
+    setSortOrder(order);
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -35,9 +54,18 @@ export function SupplyListContent() {
             {isLoading ? (
               <SupplyListSkeleton />
             ) : (
-              <div className="text-center text-muted-foreground">
-                Supply list content will be displayed here (US-005 & US-006)
-              </div>
+              <>
+                <SupplyTable
+                  items={items}
+                  onSort={handleSort}
+                  sortBy={sortBy}
+                  sortOrder={sortOrder}
+                />
+                {/* Mobile card list will be implemented in US-006 */}
+                <div className="lg:hidden text-center text-muted-foreground py-8">
+                  Mobile card view (US-006)
+                </div>
+              </>
             )}
           </div>
         </main>

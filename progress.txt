@@ -20,3 +20,8 @@ Status: Claude session completed
 ---
 Iteration 5: 2026-01-18 23:51:16
 Working on: US-004: Create supply list page with responsive layout
+Status: Claude session completed
+---
+Iteration 6: 2026-01-18 23:55:32
+Working on: US-005: Build supply table component for desktop
+Status: Complete - Created sortable table with expandable rows. Key learning: Server-side sorting via Convex query parameters provides better performance than client-side sorting for large datasets. Used Badge components for case/pallet identifiers to improve visual hierarchy. Table responds properly at lg: breakpoint. See docs/dev-log/US-005.md for full details.
