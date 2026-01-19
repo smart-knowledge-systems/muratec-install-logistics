@@ -214,3 +214,9 @@ Working on: US-045: Create daily EVM snapshot job
 Iteration 1: 2026-01-19 08:50:25
 Working on: US-045: Create daily EVM snapshot job
 Status: Complete - Implemented daily scheduled function to snapshot EVM metrics at project, PWBS, and work package scopes. Key learning: Proper TypeScript typing with MutationCtx and Doc types critical for Convex internal mutations - avoid any types. Schema field alignment matters: changed eac from null to undefined to match v.optional(v.number()) definition. Smart upsert logic prevents duplicate snapshots by checking existing records before insert. Midnight UTC execution ensures consistent daily snapshots across timezones. Reused existing calculateEvmInternal logic pattern from evm.ts but adapted for internal mutation context. See docs/dev-log/US-045.md for full details.
+Status: Claude session completed
+---
+Iteration 2: 2026-01-19 08:56:05
+Working on: US-046: Build installer mobile interface
+Status: Complete - Built mobile-first installer interface at /install/[projectNumber]/[plNumber] with large touch targets (56px buttons), issue reporting dialog, and daily/weekly completion summaries. Key learning: Type predicates essential for filtering arrays with optional fields before rendering - used type guard to ensure items have itemNumber/partNumber/description/quantity before passing to handlers. Mobile-first means touch-first: minimum 44px targets are non-negotiable, we used h-14 (56px) for better accessibility. Haptic feedback (vibration) adds delightful micro-interactions on success actions. Bottom sheets preferred over modals on mobile for secondary content like summaries. Progress visibility reduces user anxiety during repetitive tasks. See docs/dev-log/US-046.md for full details.
+Status: Claude session completed
