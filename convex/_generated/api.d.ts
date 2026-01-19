@@ -11,6 +11,7 @@
 import type * as analytics from "../analytics.js";
 import type * as caseTracking from "../caseTracking.js";
 import type * as cron from "../cron.js";
+import type * as evm from "../evm.js";
 import type * as featureRequests from "../featureRequests.js";
 import type * as fieldDashboard from "../fieldDashboard.js";
 import type * as fieldOperations from "../fieldOperations.js";
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   analytics: typeof analytics;
   caseTracking: typeof caseTracking;
   cron: typeof cron;
+  evm: typeof evm;
   featureRequests: typeof featureRequests;
   fieldDashboard: typeof fieldDashboard;
   fieldOperations: typeof fieldOperations;
