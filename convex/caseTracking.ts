@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { NotFoundError } from "./lib/errors";
 
 /**
  * Record case arrival at the site
@@ -77,8 +78,9 @@ export const setCaseLocation = mutation({
       .first();
 
     if (!caseTracking) {
-      throw new Error(
-        `Case tracking record not found for project ${args.projectNumber}, case ${args.caseNumber}`,
+      throw new NotFoundError(
+        "CaseTracking",
+        `project:${args.projectNumber}/case:${args.caseNumber}`,
       );
     }
 
@@ -116,8 +118,9 @@ export const reportDamage = mutation({
       .first();
 
     if (!caseTracking) {
-      throw new Error(
-        `Case tracking record not found for project ${args.projectNumber}, case ${args.caseNumber}`,
+      throw new NotFoundError(
+        "CaseTracking",
+        `project:${args.projectNumber}/case:${args.caseNumber}`,
       );
     }
 

@@ -123,6 +123,17 @@ async function calculateEV(
       .collect();
   }
 
+  // Batch fetch all installation statuses for this project to avoid N+1
+  const allStatuses = await ctx.db
+    .query("installationStatus")
+    .withIndex("by_project", (q) => q.eq("projectNumber", projectNumber))
+    .collect();
+
+  // Create lookup map by supplyItemId
+  const statusMap = new Map(
+    allStatuses.map((s) => [s.supplyItemId.toString(), s]),
+  );
+
   // Count items by installation status
   let evCount = 0;
   const statusCounts = {
@@ -133,11 +144,8 @@ async function calculateEV(
   };
 
   for (const item of supplyItems) {
-    // Get installation status
-    const installStatus = await ctx.db
-      .query("installationStatus")
-      .withIndex("by_supply_item", (q) => q.eq("supplyItemId", item._id))
-      .first();
+    // Get installation status from map (O(1) lookup)
+    const installStatus = statusMap.get(item._id.toString());
 
     const status = installStatus?.status ?? "not_started";
 

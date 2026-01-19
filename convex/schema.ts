@@ -341,6 +341,7 @@ export default defineSchema({
     verifiedBy: v.optional(v.id("users")),
   })
     .index("by_case", ["projectNumber", "caseNumber"])
+    .index("by_project", ["projectNumber"])
     .index("by_status", ["status"]),
 
   pickingTasks: defineTable({

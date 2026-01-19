@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  type KeyboardEvent,
+} from "react";
 import {
   Card,
   CardContent,
@@ -45,9 +51,33 @@ export function SupplyCardList({ items, onRefresh }: SupplyCardListProps) {
   const startY = useRef(0);
   const PULL_THRESHOLD = 80;
 
-  const toggleCardExpansion = (itemId: string) => {
-    setExpandedCard(expandedCard === itemId ? null : itemId);
-  };
+  const toggleCardExpansion = useCallback((itemId: string) => {
+    setExpandedCard((prev) => (prev === itemId ? null : itemId));
+  }, []);
+
+  const handleCardKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLDivElement>, itemId: string) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        toggleCardExpansion(itemId);
+      }
+    },
+    [toggleCardExpansion],
+  );
+
+  // Use refs to avoid stale closures in touch handlers
+  const isPullingRef = useRef(isPulling);
+  const pullDistanceRef = useRef(pullDistance);
+  const isRefreshingRef = useRef(isRefreshing);
+  const onRefreshRef = useRef(onRefresh);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    isPullingRef.current = isPulling;
+    pullDistanceRef.current = pullDistance;
+    isRefreshingRef.current = isRefreshing;
+    onRefreshRef.current = onRefresh;
+  }, [isPulling, pullDistance, isRefreshing, onRefresh]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -61,7 +91,8 @@ export function SupplyCardList({ items, onRefresh }: SupplyCardListProps) {
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!isPulling || isRefreshing) return;
+      // Use refs to access current values without stale closures
+      if (!isPullingRef.current || isRefreshingRef.current) return;
 
       const currentY = e.touches[0].clientY;
       const distance = currentY - startY.current;
@@ -73,11 +104,12 @@ export function SupplyCardList({ items, onRefresh }: SupplyCardListProps) {
     };
 
     const handleTouchEnd = () => {
-      if (!isPulling || isRefreshing) return;
+      // Use refs to access current values without stale closures
+      if (!isPullingRef.current || isRefreshingRef.current) return;
 
-      if (pullDistance >= PULL_THRESHOLD && onRefresh) {
+      if (pullDistanceRef.current >= PULL_THRESHOLD && onRefreshRef.current) {
         setIsRefreshing(true);
-        onRefresh();
+        onRefreshRef.current();
         // Simulate refresh delay
         setTimeout(() => {
           setIsRefreshing(false);
@@ -104,7 +136,7 @@ export function SupplyCardList({ items, onRefresh }: SupplyCardListProps) {
       container.removeEventListener("touchmove", handleTouchMove);
       container.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [isPulling, pullDistance, isRefreshing, onRefresh]);
+  }, []); // Empty deps - handlers use refs for current values
 
   return (
     <div
@@ -141,10 +173,14 @@ export function SupplyCardList({ items, onRefresh }: SupplyCardListProps) {
           <Card
             key={item._id}
             className={cn(
-              "cursor-pointer transition-all",
+              "cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
               expandedCard === item._id && "ring-2 ring-ring",
             )}
             onClick={() => toggleCardExpansion(item._id)}
+            onKeyDown={(e) => handleCardKeyDown(e, item._id)}
+            tabIndex={0}
+            role="button"
+            aria-expanded={expandedCard === item._id}
           >
             <CardHeader>
               <div className="flex items-start justify-between gap-2">

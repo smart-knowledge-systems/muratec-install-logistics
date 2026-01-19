@@ -4,6 +4,8 @@ import "./globals.css";
 import { ConvexProvider } from "@/lib/convex-provider";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { Toaster } from "@/components/ui/sonner";
+import { AppNavbar } from "@/components/navigation";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,11 +30,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
         <ConvexProvider>
           <AuthProvider>
-            {children}
+            <AppNavbar />
+            <main className="flex-1">
+              <ErrorBoundary>{children}</ErrorBoundary>
+            </main>
             <Toaster />
           </AuthProvider>
         </ConvexProvider>

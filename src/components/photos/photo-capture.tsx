@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
@@ -216,12 +216,16 @@ function PhotoThumbnail({ storageId, onRemove }: PhotoThumbnailProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const getPhotoUrl = useMutation(api.photos.getPhotoUrl);
 
-  // Load image URL on mount
-  useState(() => {
+  // Load image URL on mount with cleanup to prevent setting state on unmounted component
+  useEffect(() => {
+    let cancelled = false;
     getPhotoUrl({ storageId }).then((url) => {
-      setImageUrl(url);
+      if (!cancelled) setImageUrl(url);
     });
-  });
+    return () => {
+      cancelled = true;
+    };
+  }, [storageId, getPhotoUrl]);
 
   return (
     <div className="relative aspect-square rounded-md overflow-hidden border bg-muted">

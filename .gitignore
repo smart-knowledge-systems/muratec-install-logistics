@@ -46,5 +46,5 @@ scripts/
 .eslintcache
 .mcp.json
 CLAUDE.md
-docs/
+docs/dev-log/
 data/

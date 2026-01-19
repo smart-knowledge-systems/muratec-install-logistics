@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -28,6 +28,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
+  Loader2,
 } from "lucide-react";
 
 export function MoveInContent() {
@@ -40,6 +41,19 @@ export function MoveInContent() {
   const [damageNotes, setDamageNotes] = useState("");
   const [damagePhotos, setDamagePhotos] = useState<string[]>([]);
   const [showDamageSheet, setShowDamageSheet] = useState(false);
+
+  // Loading states to prevent double-click
+  const [isRecordingArrival, setIsRecordingArrival] = useState(false);
+  const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
+  const [isReportingDamage, setIsReportingDamage] = useState(false);
+
+  // Mount guard to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Queries
   const moveInProgress = useQuery(api.caseTracking.getMoveInProgress, {
@@ -76,7 +90,9 @@ export function MoveInContent() {
 
   // Handle recording arrival
   const handleRecordArrival = async () => {
-    if (!selectedCase || !user) return;
+    if (!selectedCase || !user || isRecordingArrival) return;
+
+    setIsRecordingArrival(true);
 
     try {
       await recordArrival({
@@ -86,18 +102,27 @@ export function MoveInContent() {
         caseLocation: locationInput || undefined,
       });
 
+      if (!isMountedRef.current) return;
+
       toast.success(`Case ${selectedCase} arrival recorded`);
       setCaseInput("");
       setSelectedCase(null);
       setLocationInput("");
     } catch (error) {
+      if (!isMountedRef.current) return;
       toast.error(`Failed to record arrival: ${error}`);
+    } finally {
+      if (isMountedRef.current) {
+        setIsRecordingArrival(false);
+      }
     }
   };
 
   // Handle location update
   const handleUpdateLocation = async () => {
-    if (!selectedCase || !locationInput) return;
+    if (!selectedCase || !locationInput || isUpdatingLocation) return;
+
+    setIsUpdatingLocation(true);
 
     try {
       await setCaseLocation({
@@ -106,15 +131,24 @@ export function MoveInContent() {
         caseLocation: locationInput,
       });
 
+      if (!isMountedRef.current) return;
+
       toast.success(`Location updated for case ${selectedCase}`);
     } catch (error) {
+      if (!isMountedRef.current) return;
       toast.error(`Failed to update location: ${error}`);
+    } finally {
+      if (isMountedRef.current) {
+        setIsUpdatingLocation(false);
+      }
     }
   };
 
   // Handle damage report
   const handleReportDamage = async () => {
-    if (!selectedCase || !damageNotes) return;
+    if (!selectedCase || !damageNotes || isReportingDamage) return;
+
+    setIsReportingDamage(true);
 
     try {
       await reportDamage({
@@ -124,12 +158,19 @@ export function MoveInContent() {
         damagePhotos: damagePhotos.length > 0 ? damagePhotos : undefined,
       });
 
+      if (!isMountedRef.current) return;
+
       toast.success(`Damage report submitted for case ${selectedCase}`);
       setDamageNotes("");
       setDamagePhotos([]);
       setShowDamageSheet(false);
     } catch (error) {
+      if (!isMountedRef.current) return;
       toast.error(`Failed to report damage: ${error}`);
+    } finally {
+      if (isMountedRef.current) {
+        setIsReportingDamage(false);
+      }
     }
   };
 
@@ -262,9 +303,13 @@ export function MoveInContent() {
                       variant="outline"
                       size="default"
                       onClick={handleUpdateLocation}
-                      disabled={!locationInput}
+                      disabled={!locationInput || isUpdatingLocation}
                     >
-                      Update
+                      {isUpdatingLocation ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Update"
+                      )}
                     </Button>
                   )}
                 </div>
@@ -282,8 +327,13 @@ export function MoveInContent() {
                     className="flex-1"
                     size="lg"
                     onClick={handleRecordArrival}
+                    disabled={isRecordingArrival}
                   >
-                    <CheckCircle2 className="h-5 w-5 mr-2" />
+                    {isRecordingArrival ? (
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-5 w-5 mr-2" />
+                    )}
                     Mark Arrived
                   </Button>
                 )}
@@ -351,14 +401,18 @@ export function MoveInContent() {
                             setDamageNotes("");
                             setDamagePhotos([]);
                           }}
+                          disabled={isReportingDamage}
                         >
                           Cancel
                         </Button>
                         <Button
                           className="flex-1"
                           onClick={handleReportDamage}
-                          disabled={!damageNotes.trim()}
+                          disabled={!damageNotes.trim() || isReportingDamage}
                         >
+                          {isReportingDamage ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : null}
                           Submit Report
                         </Button>
                       </div>

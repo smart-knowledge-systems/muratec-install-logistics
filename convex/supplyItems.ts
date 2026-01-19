@@ -31,7 +31,19 @@ export const list = query({
     plNumbers: v.optional(v.array(v.string())),
     isDeleted: v.optional(v.boolean()),
     searchText: v.optional(v.string()),
-    sortBy: v.optional(v.string()),
+    sortBy: v.optional(
+      v.union(
+        v.literal("itemNumber"),
+        v.literal("partNumber"),
+        v.literal("description"),
+        v.literal("quantity"),
+        v.literal("caseNumber"),
+        v.literal("palletNumber"),
+        v.literal("plNumber"),
+        v.literal("pwbs"),
+        v.literal("rowId"),
+      ),
+    ),
     sortOrder: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
   },
   handler: async (ctx, args) => {
@@ -76,7 +88,8 @@ export const list = query({
         .withIndex("by_pl_number", (q) => q.eq("plNumber", plNumbers[0]))
         .collect();
     } else {
-      results = await ctx.db.query("supplyItems").collect();
+      // Prevent unbounded table scan - require at least one filter or limit results
+      results = await ctx.db.query("supplyItems").take(1000);
     }
 
     let filteredResults = results;
@@ -134,12 +147,12 @@ export const list = query({
       });
     }
 
-    // Sort results
+    // Sort results - sortBy is now a validated union type
     if (sortBy) {
       const order = sortOrder === "desc" ? -1 : 1;
       filteredResults.sort((a, b) => {
-        const aValue = (a as Record<string, unknown>)[sortBy];
-        const bValue = (b as Record<string, unknown>)[sortBy];
+        const aValue = a[sortBy];
+        const bValue = b[sortBy];
 
         // Handle null/undefined values
         if (aValue === undefined || aValue === null) return 1;

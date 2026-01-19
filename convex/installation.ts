@@ -248,48 +248,60 @@ export const getInstallationStatusByWorkPackage = query({
       .filter((q) => q.eq(q.field("projectNumber"), args.projectNumber))
       .collect();
 
-    // Get installation status for each item
-    const itemsWithStatus = await Promise.all(
-      supplyItems.map(async (item) => {
-        // Get installation status
-        const installStatus = await ctx.db
-          .query("installationStatus")
-          .withIndex("by_supply_item", (q) => q.eq("supplyItemId", item._id))
-          .first();
+    // Batch fetch all installation statuses and picking tasks in parallel to avoid N+1
+    const [allStatuses, allPickingTasks] = await Promise.all([
+      ctx.db
+        .query("installationStatus")
+        .withIndex("by_work_package", (q) =>
+          q
+            .eq("projectNumber", args.projectNumber)
+            .eq("plNumber", args.plNumber),
+        )
+        .collect(),
+      ctx.db
+        .query("pickingTasks")
+        .withIndex("by_work_package", (q) =>
+          q
+            .eq("projectNumber", args.projectNumber)
+            .eq("plNumber", args.plNumber),
+        )
+        .collect(),
+    ]);
 
-        // Get picking status
-        const pickingTask = await ctx.db
-          .query("pickingTasks")
-          .withIndex("by_work_package", (q) =>
-            q
-              .eq("projectNumber", args.projectNumber)
-              .eq("plNumber", args.plNumber),
-          )
-          .filter((q) => q.eq(q.field("supplyItemId"), item._id))
-          .first();
-
-        return {
-          supplyItemId: item._id,
-          itemNumber: item.itemNumber,
-          partNumber: item.partNumber,
-          description: item.description,
-          quantity: item.quantity,
-          caseNumber: item.caseNumber,
-          installationStatus: installStatus?.status ?? "not_started",
-          startedAt: installStatus?.startedAt,
-          installedAt: installStatus?.installedAt,
-          installedBy: installStatus?.installedBy,
-          issueType: installStatus?.issueType,
-          issueNotes: installStatus?.issueNotes,
-          issuePhotos: installStatus?.issuePhotos,
-          issueReportedAt: installStatus?.issueReportedAt,
-          issueReportedBy: installStatus?.issueReportedBy,
-          issueResolvedAt: installStatus?.issueResolvedAt,
-          pickingStatus: pickingTask?.status ?? "pending",
-          pickedAt: pickingTask?.pickedAt,
-        };
-      }),
+    // Create lookup maps by supplyItemId
+    const statusMap = new Map(
+      allStatuses.map((s) => [s.supplyItemId.toString(), s]),
     );
+    const pickingMap = new Map(
+      allPickingTasks.map((t) => [t.supplyItemId.toString(), t]),
+    );
+
+    // Map supply items with their statuses (O(1) lookups)
+    const itemsWithStatus = supplyItems.map((item) => {
+      const installStatus = statusMap.get(item._id.toString());
+      const pickingTask = pickingMap.get(item._id.toString());
+
+      return {
+        supplyItemId: item._id,
+        itemNumber: item.itemNumber,
+        partNumber: item.partNumber,
+        description: item.description,
+        quantity: item.quantity,
+        caseNumber: item.caseNumber,
+        installationStatus: installStatus?.status ?? "not_started",
+        startedAt: installStatus?.startedAt,
+        installedAt: installStatus?.installedAt,
+        installedBy: installStatus?.installedBy,
+        issueType: installStatus?.issueType,
+        issueNotes: installStatus?.issueNotes,
+        issuePhotos: installStatus?.issuePhotos,
+        issueReportedAt: installStatus?.issueReportedAt,
+        issueReportedBy: installStatus?.issueReportedBy,
+        issueResolvedAt: installStatus?.issueResolvedAt,
+        pickingStatus: pickingTask?.status ?? "pending",
+        pickedAt: pickingTask?.pickedAt,
+      };
+    });
 
     // Sort by installation status (issues first, then in_progress, not_started, installed last)
     const statusOrder = {
@@ -345,6 +357,19 @@ export const getWorkPackageInstallationProgress = query({
       };
     }
 
+    // Batch fetch all installation statuses for this work package to avoid N+1
+    const allStatuses = await ctx.db
+      .query("installationStatus")
+      .withIndex("by_work_package", (q) =>
+        q.eq("projectNumber", args.projectNumber).eq("plNumber", args.plNumber),
+      )
+      .collect();
+
+    // Create lookup map by supplyItemId
+    const statusMap = new Map(
+      allStatuses.map((s) => [s.supplyItemId.toString(), s]),
+    );
+
     // Count items by installation status
     let notStartedCount = 0;
     let inProgressCount = 0;
@@ -352,11 +377,7 @@ export const getWorkPackageInstallationProgress = query({
     let issueCount = 0;
 
     for (const item of supplyItems) {
-      const installStatus = await ctx.db
-        .query("installationStatus")
-        .withIndex("by_supply_item", (q) => q.eq("supplyItemId", item._id))
-        .first();
-
+      const installStatus = statusMap.get(item._id.toString());
       const status = installStatus?.status ?? "not_started";
 
       if (status === "not_started") notStartedCount++;
@@ -416,6 +437,17 @@ export const getProjectInstallationProgress = query({
       };
     }
 
+    // Batch fetch all installation statuses for this project to avoid N+1
+    const allStatuses = await ctx.db
+      .query("installationStatus")
+      .withIndex("by_project", (q) => q.eq("projectNumber", args.projectNumber))
+      .collect();
+
+    // Create lookup map by supplyItemId
+    const statusMap = new Map(
+      allStatuses.map((s) => [s.supplyItemId.toString(), s]),
+    );
+
     // Count items by installation status
     let notStartedCount = 0;
     let inProgressCount = 0;
@@ -423,11 +455,7 @@ export const getProjectInstallationProgress = query({
     let issueCount = 0;
 
     for (const item of supplyItems) {
-      const installStatus = await ctx.db
-        .query("installationStatus")
-        .withIndex("by_supply_item", (q) => q.eq("supplyItemId", item._id))
-        .first();
-
+      const installStatus = statusMap.get(item._id.toString());
       const status = installStatus?.status ?? "not_started";
 
       if (status === "not_started") notStartedCount++;

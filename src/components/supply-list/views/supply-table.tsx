@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState, useCallback, type KeyboardEvent } from "react";
 import {
   Table,
   TableBody,
@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { SortableColumn } from "@/convex/lib/types";
 
 // Type definition matching Convex schema
 interface SupplyItem {
@@ -34,25 +35,13 @@ interface SupplyItem {
 
 interface SupplyTableProps {
   items: SupplyItem[];
-  onSort?: (field: string, order: "asc" | "desc") => void;
-  sortBy?: string;
+  onSort?: (field: SortableColumn, order: "asc" | "desc") => void;
+  sortBy?: SortableColumn;
   sortOrder?: "asc" | "desc";
 }
 
-type SortableField = keyof Pick<
-  SupplyItem,
-  | "itemNumber"
-  | "partNumber"
-  | "description"
-  | "quantity"
-  | "caseNumber"
-  | "palletNumber"
-  | "plNumber"
-  | "pwbs"
->;
-
 const COLUMNS: Array<{
-  key: SortableField;
+  key: SortableColumn;
   label: string;
   sortable: boolean;
 }> = [
@@ -74,15 +63,45 @@ export function SupplyTable({
 }: SupplyTableProps) {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
-  const handleSort = (field: SortableField) => {
-    if (!onSort) return;
+  const handleSort = useCallback(
+    (field: SortableColumn) => {
+      if (!onSort) return;
 
-    const newOrder = sortBy === field && sortOrder === "asc" ? "desc" : "asc";
-    onSort(field, newOrder);
-  };
+      const newOrder = sortBy === field && sortOrder === "asc" ? "desc" : "asc";
+      onSort(field, newOrder);
+    },
+    [onSort, sortBy, sortOrder],
+  );
+
+  const handleSortKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLTableCellElement>, field: SortableColumn) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        handleSort(field);
+      }
+    },
+    [handleSort],
+  );
 
   const toggleRowExpansion = (itemId: string) => {
     setExpandedRow(expandedRow === itemId ? null : itemId);
+  };
+
+  const handleRowKeyDown = (
+    e: KeyboardEvent<HTMLTableRowElement>,
+    itemId: string,
+  ) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggleRowExpansion(itemId);
+    }
+  };
+
+  const getAriaSort = (
+    field: SortableColumn,
+  ): "ascending" | "descending" | undefined => {
+    if (sortBy !== field) return undefined;
+    return sortOrder === "asc" ? "ascending" : "descending";
   };
 
   return (
@@ -95,10 +114,18 @@ export function SupplyTable({
                 key={column.key}
                 className={cn(
                   column.sortable && onSort
-                    ? "cursor-pointer select-none hover:bg-muted/50"
+                    ? "cursor-pointer select-none hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
                     : "",
                 )}
                 onClick={() => column.sortable && handleSort(column.key)}
+                onKeyDown={(e) =>
+                  column.sortable && handleSortKeyDown(e, column.key)
+                }
+                tabIndex={column.sortable && onSort ? 0 : undefined}
+                role={column.sortable && onSort ? "button" : undefined}
+                aria-sort={
+                  column.sortable ? getAriaSort(column.key) : undefined
+                }
               >
                 <div className="flex items-center gap-2">
                   {column.label}
@@ -125,14 +152,17 @@ export function SupplyTable({
             </TableRow>
           ) : (
             items.map((item) => (
-              <>
+              <Fragment key={item._id}>
                 <TableRow
-                  key={item._id}
                   className={cn(
-                    "cursor-pointer",
+                    "cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring focus:ring-inset",
                     expandedRow === item._id && "bg-muted/30",
                   )}
                   onClick={() => toggleRowExpansion(item._id)}
+                  onKeyDown={(e) => handleRowKeyDown(e, item._id)}
+                  tabIndex={0}
+                  role="button"
+                  aria-expanded={expandedRow === item._id}
                 >
                   <TableCell className="font-medium">
                     {item.itemNumber || "—"}
@@ -171,7 +201,7 @@ export function SupplyTable({
                   </TableCell>
                 </TableRow>
                 {expandedRow === item._id && (
-                  <TableRow key={`${item._id}-detail`}>
+                  <TableRow>
                     <TableCell colSpan={COLUMNS.length} className="bg-muted/10">
                       <div className="p-4 space-y-3">
                         <h4 className="font-semibold text-sm">Item Details</h4>
@@ -254,7 +284,7 @@ export function SupplyTable({
                     </TableCell>
                   </TableRow>
                 )}
-              </>
+              </Fragment>
             ))
           )}
         </TableBody>

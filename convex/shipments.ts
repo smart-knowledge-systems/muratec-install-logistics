@@ -2,6 +2,7 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import type { MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
+import { NotFoundError } from "./lib/errors";
 
 /**
  * Create a new shipment
@@ -302,7 +303,7 @@ export const assignCasesToShipment = mutation({
     // Check if shipment exists
     const shipment = await ctx.db.get(args.shipmentId);
     if (!shipment) {
-      throw new Error("Shipment not found");
+      throw new NotFoundError("Shipment", args.shipmentId);
     }
 
     for (const caseData of args.cases) {
@@ -373,7 +374,7 @@ export const removeCasesFromShipment = mutation({
     // Check if shipment exists
     const shipment = await ctx.db.get(args.shipmentId);
     if (!shipment) {
-      throw new Error("Shipment not found");
+      throw new NotFoundError("Shipment", args.shipmentId);
     }
 
     for (const caseData of args.cases) {

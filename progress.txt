@@ -237,3 +237,8 @@ Status: Claude session completed
 ---
 Iteration 6: 2026-01-19 09:25:15
 Working on: US-050: Build EVM report generator
+Status: Claude session completed
+---
+Manual: 2026-01-19
+Working on: Global Navigation & User Training Documentation
+Status: Complete - Built responsive global navbar with desktop dropdowns and mobile sheet navigation, plus in-app help system rendering markdown documentation. Key learning: React 19 async params require Promise unwrapping in generateMetadata. Popover+Collapsible patterns from shadcn work well for hierarchical navigation. Storing docs as markdown in docs/user-guide/ enables version control and easy editing while rendering in-app via react-markdown. See docs/dev-log/global-navigation-and-help-system.md for full details.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -18,6 +18,7 @@ import {
   Wrench,
   Calendar,
   TrendingUp,
+  Loader2,
 } from "lucide-react";
 import type { Id } from "@/convex/_generated/dataModel";
 import { IssueReportDialog } from "./issue-report-dialog";
@@ -69,6 +70,17 @@ export function InstallerContent({
 
   const [summarySheetOpen, setSummarySheetOpen] = useState(false);
 
+  // Loading states to prevent double-click
+  const [loadingItems, setLoadingItems] = useState<Set<string>>(new Set());
+
+  // Mount guard to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Queries
   const items = useQuery(api.installation.getInstallationStatusByWorkPackage, {
     projectNumber,
@@ -93,6 +105,11 @@ export function InstallerContent({
       return;
     }
 
+    const itemId = item.supplyItemId.toString();
+
+    // Prevent double-click
+    if (loadingItems.has(itemId)) return;
+
     // Check if item was picked
     if (item.pickingStatus !== "picked") {
       toast.warning(
@@ -103,6 +120,9 @@ export function InstallerContent({
       );
     }
 
+    // Set loading state
+    setLoadingItems((prev) => new Set(prev).add(itemId));
+
     try {
       const result = await updateStatus({
         supplyItemId: item.supplyItemId,
@@ -111,6 +131,9 @@ export function InstallerContent({
         status: "installed",
         userId: user._id,
       });
+
+      // Check if component is still mounted
+      if (!isMountedRef.current) return;
 
       if (result.warning) {
         toast.warning(result.warning, { duration: 5000 });
@@ -125,7 +148,16 @@ export function InstallerContent({
         description: `${item.itemNumber} completed`,
       });
     } catch (error) {
+      if (!isMountedRef.current) return;
       toast.error(`Failed to update installation status: ${error}`);
+    } finally {
+      if (isMountedRef.current) {
+        setLoadingItems((prev) => {
+          const next = new Set(prev);
+          next.delete(itemId);
+          return next;
+        });
+      }
     }
   };
 
@@ -346,8 +378,15 @@ export function InstallerContent({
                         variant="default"
                         className="h-14 bg-green-500 hover:bg-green-600"
                         size="lg"
+                        disabled={loadingItems.has(
+                          item.supplyItemId.toString(),
+                        )}
                       >
-                        <CheckCircle2 className="mr-2 h-5 w-5" />
+                        {loadingItems.has(item.supplyItemId.toString()) ? (
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="mr-2 h-5 w-5" />
+                        )}
                         Installed
                       </Button>
                       <Button

@@ -263,10 +263,10 @@ export const getProjectInventoryProgress = query({
     const pendingCases =
       totalCases - completedCases - inProgressCases - discrepancyCases;
 
-    // Get all inventory items for this project
+    // Get all inventory items for this project using index
     const allInventoryItems = await ctx.db
       .query("inventoryItems")
-      .filter((q) => q.eq(q.field("projectNumber"), args.projectNumber))
+      .withIndex("by_project", (q) => q.eq("projectNumber", args.projectNumber))
       .collect();
 
     // Count items by status

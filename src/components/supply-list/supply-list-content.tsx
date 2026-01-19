@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -9,6 +9,7 @@ import { SupplyListHeader } from "./supply-list-header";
 import { SupplyListToolbar } from "./supply-list-toolbar";
 import { SupplyListSkeleton } from "./supply-list-skeleton";
 import { SupplyTable } from "./views/supply-table";
+import type { SortableColumn } from "@/convex/lib/types";
 import { SupplyCardList } from "./views/supply-card-list";
 import { FilterSidebar, type FilterState } from "./filters/filter-sidebar";
 import { FilterSheet } from "./filters/filter-sheet";
@@ -18,7 +19,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 
 const LAST_PROJECT_KEY = "supply-list-last-project";
 
-// View type for saved/default views
+// View type for saved/default views (sortBy is string from Convex, cast to SortableColumn when used)
 interface View {
   filters: Partial<FilterState>;
   sortBy?: string;
@@ -30,7 +31,7 @@ export function SupplyListContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [sortBy, setSortBy] = useState<string | undefined>(undefined);
+  const [sortBy, setSortBy] = useState<SortableColumn | undefined>(undefined);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [currentViewId, setCurrentViewId] = useState<
@@ -70,29 +71,52 @@ export function SupplyListContent() {
     };
   });
 
-  // Update URL when filters change
+  // Debounce URL updates to avoid history pollution during rapid filter changes
+  const urlUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
+  // Update URL when filters change (debounced)
   useEffect(() => {
-    const params = new URLSearchParams();
-
-    if (filters.projectNumber) {
-      params.set("project", filters.projectNumber);
-    }
-    if (filters.pwbs.length > 0) {
-      params.set("pwbs", filters.pwbs.join(","));
-    }
-    if (filters.caseNumbers.length > 0) {
-      params.set("cases", filters.caseNumbers.join(","));
-    }
-    if (filters.palletNumbers.length > 0) {
-      params.set("pallets", filters.palletNumbers.join(","));
-    }
-    if (filters.plNumbers.length > 0) {
-      params.set("plNumbers", filters.plNumbers.join(","));
+    // Clear any pending URL update
+    if (urlUpdateTimeoutRef.current) {
+      clearTimeout(urlUpdateTimeoutRef.current);
     }
 
-    const queryString = params.toString();
-    const newUrl = queryString ? `/supply-list?${queryString}` : "/supply-list";
-    router.push(newUrl, { scroll: false });
+    // Debounce URL updates by 300ms
+    urlUpdateTimeoutRef.current = setTimeout(() => {
+      const params = new URLSearchParams();
+
+      if (filters.projectNumber) {
+        params.set("project", filters.projectNumber);
+      }
+      if (filters.pwbs.length > 0) {
+        params.set("pwbs", filters.pwbs.join(","));
+      }
+      if (filters.caseNumbers.length > 0) {
+        params.set("cases", filters.caseNumbers.join(","));
+      }
+      if (filters.palletNumbers.length > 0) {
+        params.set("pallets", filters.palletNumbers.join(","));
+      }
+      if (filters.plNumbers.length > 0) {
+        params.set("plNumbers", filters.plNumbers.join(","));
+      }
+
+      const queryString = params.toString();
+      const newUrl = queryString
+        ? `/supply-list?${queryString}`
+        : "/supply-list";
+      // Use replace instead of push to avoid polluting browser history
+      router.replace(newUrl, { scroll: false });
+    }, 300);
+
+    // Cleanup timeout on unmount or when filters change
+    return () => {
+      if (urlUpdateTimeoutRef.current) {
+        clearTimeout(urlUpdateTimeoutRef.current);
+      }
+    };
   }, [filters, router]);
 
   // Fetch available projects for the project switcher
@@ -119,7 +143,7 @@ export function SupplyListContent() {
   const items = result?.page ?? [];
   const isLoading = result === undefined;
 
-  const handleSort = (field: string, order: "asc" | "desc") => {
+  const handleSort = (field: SortableColumn, order: "asc" | "desc") => {
     setSortBy(field);
     setSortOrder(order);
   };
@@ -189,9 +213,9 @@ export function SupplyListContent() {
         plNumbers: view.filters.plNumbers ?? [],
       });
 
-      // Apply view's sort
+      // Apply view's sort (cast from string to SortableColumn)
       if (view.sortBy) {
-        setSortBy(view.sortBy);
+        setSortBy(view.sortBy as SortableColumn);
         setSortOrder(view.sortOrder ?? "asc");
       }
     } else {

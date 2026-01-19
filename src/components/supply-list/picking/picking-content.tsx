@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -27,6 +27,7 @@ import {
   MapPin,
   Hash,
   ClipboardList,
+  Loader2,
 } from "lucide-react";
 import type { Id } from "@/convex/_generated/dataModel";
 
@@ -57,6 +58,19 @@ export function PickingContent() {
     useState<Id<"supplyItems"> | null>(null);
   const [partialQuantity, setPartialQuantity] = useState("");
   const [pickNotes, setPickNotes] = useState("");
+
+  // Loading states to prevent double-click
+  const [loadingItems, setLoadingItems] = useState<Set<string>>(new Set());
+  const [isGeneratingPickList, setIsGeneratingPickList] = useState(false);
+  const [isSavingPartial, setIsSavingPartial] = useState(false);
+
+  // Mount guard to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Queries
   const filterOptions = useQuery(api.supplyItems.getFilterOptions, {
@@ -90,7 +104,7 @@ export function PickingContent() {
   // Handle work package selection
   const handleSelectPlNumber = async () => {
     const trimmedPl = plNumberInput.trim();
-    if (!trimmedPl) return;
+    if (!trimmedPl || isGeneratingPickList) return;
 
     // Check if plNumber exists in project
     if (
@@ -103,6 +117,7 @@ export function PickingContent() {
 
     setSelectedPlNumber(trimmedPl);
     setPickingMap(new Map());
+    setIsGeneratingPickList(true);
 
     // Generate pick list if it doesn't exist
     try {
@@ -110,9 +125,15 @@ export function PickingContent() {
         projectNumber: selectedProject,
         plNumber: trimmedPl,
       });
+      if (!isMountedRef.current) return;
       toast.success(`Pick list loaded for ${trimmedPl}`);
     } catch (error) {
+      if (!isMountedRef.current) return;
       toast.error(`Failed to generate pick list: ${error}`);
+    } finally {
+      if (isMountedRef.current) {
+        setIsGeneratingPickList(false);
+      }
     }
   };
 
@@ -124,6 +145,14 @@ export function PickingContent() {
   ) => {
     if (!selectedPlNumber || !user) return;
 
+    const itemId = supplyItemId.toString();
+
+    // Prevent double-click
+    if (loadingItems.has(itemId)) return;
+
+    // Set loading state
+    setLoadingItems((prev) => new Set(prev).add(itemId));
+
     try {
       await updatePickStatus({
         projectNumber: selectedProject,
@@ -133,6 +162,9 @@ export function PickingContent() {
         pickedQuantity: status === "picked" ? requiredQuantity : undefined,
         userId: user._id,
       });
+
+      // Check if component is still mounted
+      if (!isMountedRef.current) return;
 
       // Update local state
       setPickingMap((prev) => {
@@ -154,7 +186,16 @@ export function PickingContent() {
             : "Status updated",
       );
     } catch (error) {
+      if (!isMountedRef.current) return;
       toast.error(`Failed to update pick status: ${error}`);
+    } finally {
+      if (isMountedRef.current) {
+        setLoadingItems((prev) => {
+          const next = new Set(prev);
+          next.delete(itemId);
+          return next;
+        });
+      }
     }
   };
 
@@ -170,7 +211,8 @@ export function PickingContent() {
   };
 
   const handleSavePartialPick = async () => {
-    if (!selectedItemId || !selectedPlNumber || !user) return;
+    if (!selectedItemId || !selectedPlNumber || !user || isSavingPartial)
+      return;
 
     const qty = parseInt(partialQuantity);
     if (isNaN(qty) || qty <= 0) {
@@ -188,6 +230,8 @@ export function PickingContent() {
       return;
     }
 
+    setIsSavingPartial(true);
+
     try {
       await updatePickStatus({
         projectNumber: selectedProject,
@@ -198,6 +242,9 @@ export function PickingContent() {
         userId: user._id,
         notes: pickNotes || undefined,
       });
+
+      // Check if component is still mounted
+      if (!isMountedRef.current) return;
 
       // Update local state
       setPickingMap((prev) => {
@@ -220,7 +267,12 @@ export function PickingContent() {
       setPartialQuantity("");
       setPickNotes("");
     } catch (error) {
+      if (!isMountedRef.current) return;
       toast.error(`Failed to record partial pick: ${error}`);
+    } finally {
+      if (isMountedRef.current) {
+        setIsSavingPartial(false);
+      }
     }
   };
 
@@ -312,8 +364,16 @@ export function PickingContent() {
             }}
             className="flex-1"
           />
-          <Button onClick={handleSelectPlNumber} size="lg">
-            Load
+          <Button
+            onClick={handleSelectPlNumber}
+            size="lg"
+            disabled={isGeneratingPickList}
+          >
+            {isGeneratingPickList ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              "Load"
+            )}
           </Button>
         </div>
         {filterOptions && filterOptions.plNumbers.length > 0 && (
@@ -481,8 +541,15 @@ export function PickingContent() {
                         }
                         variant="default"
                         className="h-14 bg-green-500 hover:bg-green-600"
+                        disabled={loadingItems.has(
+                          item.supplyItemId.toString(),
+                        )}
                       >
-                        <CheckCircle2 className="mr-1 h-4 w-4" />
+                        {loadingItems.has(item.supplyItemId.toString()) ? (
+                          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="mr-1 h-4 w-4" />
+                        )}
                         Picked
                       </Button>
                       <Button
@@ -494,6 +561,9 @@ export function PickingContent() {
                         }
                         variant="default"
                         className="h-14 bg-blue-500 hover:bg-blue-600"
+                        disabled={loadingItems.has(
+                          item.supplyItemId.toString(),
+                        )}
                       >
                         <AlertTriangle className="mr-1 h-4 w-4" />
                         Partial
@@ -508,8 +578,15 @@ export function PickingContent() {
                         }
                         variant="secondary"
                         className="h-14"
+                        disabled={loadingItems.has(
+                          item.supplyItemId.toString(),
+                        )}
                       >
-                        <XCircle className="mr-1 h-4 w-4" />
+                        {loadingItems.has(item.supplyItemId.toString()) ? (
+                          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                        ) : (
+                          <XCircle className="mr-1 h-4 w-4" />
+                        )}
                         Unavailable
                       </Button>
                     </div>
@@ -576,7 +653,11 @@ export function PickingContent() {
               onClick={handleSavePartialPick}
               className="w-full"
               size="lg"
+              disabled={isSavingPartial}
             >
+              {isSavingPartial ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
               Save Partial Pick
             </Button>
           </div>

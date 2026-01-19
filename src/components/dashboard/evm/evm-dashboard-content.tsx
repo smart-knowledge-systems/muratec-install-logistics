@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -361,7 +361,7 @@ function ProjectHealthCardWrapper({
   const evmMetrics = useQuery(api.evm.getEvmByProject, { projectNumber });
 
   // Notify parent when EVM data loads
-  useMemo(() => {
+  useEffect(() => {
     if (evmMetrics && onEvmLoaded) {
       onEvmLoaded(evmMetrics);
     }

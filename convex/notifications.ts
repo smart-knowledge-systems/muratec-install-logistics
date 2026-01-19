@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { NotFoundError } from "./lib/errors";
 
 /**
  * Create a new notification for a user
@@ -47,7 +48,7 @@ export const markNotificationRead = mutation({
     const notification = await ctx.db.get(args.id);
 
     if (!notification) {
-      throw new Error("Notification not found");
+      throw new NotFoundError("Notification", args.id);
     }
 
     await ctx.db.patch(args.id, {
