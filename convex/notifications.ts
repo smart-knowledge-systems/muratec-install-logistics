@@ -80,6 +80,34 @@ export const markNotificationsRead = mutation({
 });
 
 /**
+ * Mark all unread notifications as read for a user
+ */
+export const markAllRead = mutation({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+
+    const unreadNotifications = await ctx.db
+      .query("notifications")
+      .withIndex("by_user_unread", (q) =>
+        q.eq("userId", args.userId).eq("read", false),
+      )
+      .collect();
+
+    for (const notification of unreadNotifications) {
+      await ctx.db.patch(notification._id, {
+        read: true,
+        readAt: now,
+      });
+    }
+
+    return { count: unreadNotifications.length };
+  },
+});
+
+/**
  * Get unread notifications for a user
  */
 export const getUnreadNotifications = query({

@@ -1,12 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { ShipmentCard } from "./shipment-card";
 import { StatusDateDialog } from "./status-date-dialog";
+import {
+  ShipmentFilterPanel,
+  type ShipmentFilters,
+} from "./shipment-filter-panel";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   DndContext,
   DragOverlay,
@@ -20,6 +27,8 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { toast } from "sonner";
+import { Filter } from "lucide-react";
+import { useAuth } from "@/lib/auth/auth-context";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 
 const KANBAN_COLUMNS = [
@@ -33,6 +42,7 @@ const KANBAN_COLUMNS = [
 type ShipmentStatus = (typeof KANBAN_COLUMNS)[number]["id"];
 
 export function ShipmentKanbanBoard() {
+  const { user } = useAuth();
   const shipments = useQuery(api.shipments.getShipments, {});
   const updateShipmentStatus = useMutation(api.shipments.updateShipmentStatus);
 
@@ -44,6 +54,7 @@ export function ShipmentKanbanBoard() {
     newStatus: ShipmentStatus;
     statusLabel: string;
   } | null>(null);
+  const [filters, setFilters] = useState<ShipmentFilters>({});
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -53,6 +64,66 @@ export function ShipmentKanbanBoard() {
     }),
   );
 
+  // Extract unique projects and ports for filter dropdowns
+  // Hooks must be called unconditionally, so use empty array fallback
+  const availableProjects = useMemo(() => {
+    if (!shipments) return [];
+    const projectSet = new Set<string>();
+    shipments.forEach((shipment) => {
+      shipment.projectNumbers.forEach((project) => projectSet.add(project));
+    });
+    return Array.from(projectSet).sort();
+  }, [shipments]);
+
+  const availablePorts = useMemo(() => {
+    if (!shipments) return [];
+    const portSet = new Set<string>();
+    shipments.forEach((shipment) => {
+      if (shipment.portOfDestination) {
+        portSet.add(shipment.portOfDestination);
+      }
+    });
+    return Array.from(portSet).sort();
+  }, [shipments]);
+
+  // Filter shipments based on active filters
+  const filteredShipments = useMemo(() => {
+    if (!shipments) return [];
+    return shipments.filter((shipment) => {
+      // Project filter
+      if (
+        filters.projectNumber &&
+        !shipment.projectNumbers.includes(filters.projectNumber)
+      ) {
+        return false;
+      }
+
+      // Destination port filter
+      if (
+        filters.destinationPort &&
+        shipment.portOfDestination !== filters.destinationPort
+      ) {
+        return false;
+      }
+
+      // Date range filter (using ETA)
+      if (shipment.eta) {
+        if (filters.startDate && shipment.eta < filters.startDate.getTime()) {
+          return false;
+        }
+        if (filters.endDate && shipment.eta > filters.endDate.getTime()) {
+          return false;
+        }
+      } else if (filters.startDate || filters.endDate) {
+        // Exclude shipments without ETA if date filters are active
+        return false;
+      }
+
+      return true;
+    });
+  }, [shipments, filters]);
+
+  // Show skeleton while loading
   if (shipments === undefined) {
     return <KanbanBoardSkeleton />;
   }
@@ -60,12 +131,12 @@ export function ShipmentKanbanBoard() {
   // Group shipments by status
   const shipmentsByStatus = KANBAN_COLUMNS.reduce(
     (acc, column) => {
-      acc[column.id] = shipments.filter(
+      acc[column.id] = filteredShipments.filter(
         (shipment) => shipment.status === column.id,
       );
       return acc;
     },
-    {} as Record<ShipmentStatus, typeof shipments>,
+    {} as Record<ShipmentStatus, typeof filteredShipments>,
   );
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -123,23 +194,66 @@ export function ShipmentKanbanBoard() {
         onDragEnd={handleDragEnd}
       >
         <div className="p-4 md:p-6 lg:p-8">
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold tracking-tight">
-              Logistics Dashboard
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Track shipments from factory to delivery
-            </p>
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">
+                Logistics Dashboard
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                Track shipments from factory to delivery
+              </p>
+            </div>
+
+            {/* Notification bell and mobile filter button */}
+            <div className="flex items-center gap-2">
+              {user && <NotificationBell userId={user._id} />}
+
+              {/* Mobile filter button */}
+              <div className="lg:hidden">
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="icon">
+                      <Filter className="h-4 w-4" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="right" className="w-80">
+                    <div className="mt-6">
+                      <ShipmentFilterPanel
+                        filters={filters}
+                        onFiltersChange={setFilters}
+                        availableProjects={availableProjects}
+                        availablePorts={availablePorts}
+                      />
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {KANBAN_COLUMNS.map((column) => (
-              <KanbanColumn
-                key={column.id}
-                column={column}
-                shipments={shipmentsByStatus[column.id]}
+          <div className="flex gap-6">
+            {/* Desktop filter sidebar */}
+            <div className="hidden lg:block lg:w-64 flex-shrink-0">
+              <ShipmentFilterPanel
+                filters={filters}
+                onFiltersChange={setFilters}
+                availableProjects={availableProjects}
+                availablePorts={availablePorts}
               />
-            ))}
+            </div>
+
+            {/* Kanban board */}
+            <div className="flex-1 overflow-x-auto">
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 min-w-max">
+                {KANBAN_COLUMNS.map((column) => (
+                  <KanbanColumn
+                    key={column.id}
+                    column={column}
+                    shipments={shipmentsByStatus[column.id]}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
