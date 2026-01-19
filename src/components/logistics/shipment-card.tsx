@@ -8,16 +8,22 @@ import { formatDate } from "@/lib/utils";
 
 interface ShipmentCardProps {
   shipment: Doc<"shipments">;
+  isDragging?: boolean;
 }
 
-export function ShipmentCard({ shipment }: ShipmentCardProps) {
+export function ShipmentCard({ shipment, isDragging }: ShipmentCardProps) {
   const router = useRouter();
   const isDelayed =
     shipment.eta && shipment.originalEta
       ? shipment.eta > shipment.originalEta + 3 * 24 * 60 * 60 * 1000 // 3 days in milliseconds
       : false;
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    // Don't navigate if being dragged
+    if (isDragging) {
+      e.preventDefault();
+      return;
+    }
     router.push(`/logistics/shipments/${shipment._id}`);
   };
 
@@ -25,7 +31,7 @@ export function ShipmentCard({ shipment }: ShipmentCardProps) {
     <Card
       className={`mb-3 cursor-pointer transition-all hover:shadow-md ${
         isDelayed ? "border-red-500 border-2 bg-red-50" : ""
-      }`}
+      } ${isDragging ? "shadow-xl" : ""}`}
       onClick={handleClick}
     >
       <CardContent className="p-4">

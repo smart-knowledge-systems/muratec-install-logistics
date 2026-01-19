@@ -81,3 +81,7 @@ Status: Claude session completed
 ---
 Iteration 19: 2026-01-19 01:03:05
 Working on: US-017: Build arrival calendar view
+Status: Claude session completed
+---
+Iteration 20: 2026-01-19 01:08:34
+Working on: US-018: Add drag-drop status updates to Kanban board

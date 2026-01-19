@@ -125,6 +125,51 @@ export const updateShipmentMilestone = mutation({
 });
 
 /**
+ * Update shipment status with automatic milestone date update
+ * Used for drag-and-drop status changes in Kanban board
+ */
+export const updateShipmentStatus = mutation({
+  args: {
+    id: v.id("shipments"),
+    status: v.union(
+      v.literal("at_factory"),
+      v.literal("in_transit"),
+      v.literal("at_port"),
+      v.literal("customs"),
+      v.literal("delivered"),
+    ),
+    statusDate: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const updates: Record<string, string | number> = {
+      status: args.status,
+      updatedAt: Date.now(),
+    };
+
+    // Map status to appropriate milestone field
+    switch (args.status) {
+      case "at_factory":
+        updates.factoryOutDate = args.statusDate;
+        break;
+      case "in_transit":
+        updates.atd = args.statusDate; // Actual Time of Departure
+        break;
+      case "at_port":
+        updates.ata = args.statusDate; // Actual Time of Arrival
+        break;
+      case "customs":
+        updates.customsClearedDate = args.statusDate;
+        break;
+      case "delivered":
+        updates.deliveredDate = args.statusDate;
+        break;
+    }
+
+    await ctx.db.patch(args.id, updates);
+  },
+});
+
+/**
  * Get shipments with optional filters
  */
 export const getShipments = query({
