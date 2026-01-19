@@ -1,3 +1,6 @@
+"use client";
+
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Doc } from "@/convex/_generated/dataModel";
@@ -8,16 +11,22 @@ interface ShipmentCardProps {
 }
 
 export function ShipmentCard({ shipment }: ShipmentCardProps) {
+  const router = useRouter();
   const isDelayed =
     shipment.eta && shipment.originalEta
       ? shipment.eta > shipment.originalEta + 3 * 24 * 60 * 60 * 1000 // 3 days in milliseconds
       : false;
+
+  const handleClick = () => {
+    router.push(`/logistics/shipments/${shipment._id}`);
+  };
 
   return (
     <Card
       className={`mb-3 cursor-pointer transition-all hover:shadow-md ${
         isDelayed ? "border-red-500 border-2 bg-red-50" : ""
       }`}
+      onClick={handleClick}
     >
       <CardContent className="p-4">
         <div className="space-y-2">

@@ -73,3 +73,7 @@ Status: Claude session completed
 Iteration 17: 2026-01-19 00:51:41
 Working on: US-015: Build shipment Kanban board
 Status: Complete - Built Kanban board at /logistics with five status columns (At Factory, In Transit, At Port, Customs, Delivered). Cards display vessel, ETA, case count, project badges. Delayed shipments (>3 day ETA change) highlighted with red border/background. Key learning: Used responsive grid layout (1/3/5 columns) for optimal viewing across devices. Formatting utilities added to src/lib/utils.ts for consistent date display. See docs/dev-log/US-015.md for full details.
+Status: Claude session completed
+---
+Iteration 18: 2026-01-19 00:55:59
+Working on: US-016: Build shipment detail view with milestone timeline
