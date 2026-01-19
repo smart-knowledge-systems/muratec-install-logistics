@@ -2,21 +2,25 @@
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Grid3x3, Table, X } from "lucide-react";
+import { Grid3x3, Table, X, Save } from "lucide-react";
 import type { FilterState } from "./filters/filter-sidebar";
 
 interface SupplyListToolbarProps {
   filters?: FilterState;
   itemCount?: number;
   filterSheet?: React.ReactNode;
+  viewPicker?: React.ReactNode;
   onRemoveFilter?: (filterType: keyof FilterState, value?: string) => void;
+  onSaveView?: () => void;
 }
 
 export function SupplyListToolbar({
   filters,
   itemCount,
   filterSheet,
+  viewPicker,
   onRemoveFilter,
+  onSaveView,
 }: SupplyListToolbarProps) {
   const handleRemoveProjectFilter = () => {
     onRemoveFilter?.("projectNumber");
@@ -45,10 +49,16 @@ export function SupplyListToolbar({
           {/* Mobile filter button with sheet */}
           {filterSheet}
 
-          {/* Saved views picker - will be implemented in US-010 */}
-          <Button variant="outline" size="sm">
-            All Items
-          </Button>
+          {/* Saved views picker */}
+          {viewPicker}
+
+          {/* Save view button */}
+          {onSaveView && (
+            <Button variant="ghost" size="sm" onClick={onSaveView}>
+              <Save className="h-4 w-4 mr-1.5" />
+              Save View
+            </Button>
+          )}
 
           {/* Active filter chips */}
           {filters?.projectNumber && (

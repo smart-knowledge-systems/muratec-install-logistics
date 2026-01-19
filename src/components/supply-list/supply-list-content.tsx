@@ -12,8 +12,18 @@ import { SupplyTable } from "./views/supply-table";
 import { SupplyCardList } from "./views/supply-card-list";
 import { FilterSidebar, type FilterState } from "./filters/filter-sidebar";
 import { FilterSheet } from "./filters/filter-sheet";
+import { ViewPicker } from "./views/view-picker";
+import { SaveViewDialog } from "./views/save-view-dialog";
+import type { Id } from "@/convex/_generated/dataModel";
 
 const LAST_PROJECT_KEY = "supply-list-last-project";
+
+// View type for saved/default views
+interface View {
+  filters: Partial<FilterState>;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+}
 
 export function SupplyListContent() {
   const { user, logout } = useAuth();
@@ -23,6 +33,18 @@ export function SupplyListContent() {
   const [sortBy, setSortBy] = useState<string | undefined>(undefined);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [currentViewId, setCurrentViewId] = useState<
+    string | Id<"savedViews"> | undefined
+  >(undefined);
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [visibleColumns] = useState<string[]>([
+    "itemNumber",
+    "partNumber",
+    "description",
+    "quantity",
+    "caseNumber",
+    "pwbs",
+  ]);
 
   // Initialize filters from URL query params or localStorage
   const [filters, setFilters] = useState<FilterState>(() => {
@@ -150,6 +172,43 @@ export function SupplyListContent() {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
 
+  // Handle view selection
+  const handleSelectView = (
+    view: View | null,
+    viewId: string | Id<"savedViews"> | null,
+  ) => {
+    setCurrentViewId(viewId ?? undefined);
+
+    if (view) {
+      // Apply view's filters
+      setFilters({
+        projectNumber: view.filters.projectNumber,
+        pwbs: view.filters.pwbs ?? [],
+        caseNumbers: view.filters.caseNumbers ?? [],
+        palletNumbers: view.filters.palletNumbers ?? [],
+        plNumbers: view.filters.plNumbers ?? [],
+      });
+
+      // Apply view's sort
+      if (view.sortBy) {
+        setSortBy(view.sortBy);
+        setSortOrder(view.sortOrder ?? "asc");
+      }
+    } else {
+      // Clear view - reset to all items
+      setCurrentViewId(undefined);
+    }
+  };
+
+  // Handle save view
+  const handleOpenSaveDialog = () => {
+    setIsSaveDialogOpen(true);
+  };
+
+  const handleViewSaved = (viewId: Id<"savedViews">) => {
+    setCurrentViewId(viewId);
+  };
+
   // Callback for pull-to-refresh UI animation
   // Convex subscriptions auto-update, so this just triggers the visual refresh indicator
   const handleRefresh = () => {};
@@ -161,6 +220,9 @@ export function SupplyListContent() {
     filters.caseNumbers.length +
     filters.palletNumbers.length +
     filters.plNumbers.length;
+
+  // Get user ID for saved views
+  const userId = user?._id;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -187,6 +249,17 @@ export function SupplyListContent() {
             filters={filters}
             itemCount={items.length}
             onRemoveFilter={handleRemoveFilter}
+            onSaveView={handleOpenSaveDialog}
+            viewPicker={
+              userId ? (
+                <ViewPicker
+                  userId={userId}
+                  currentViewId={currentViewId}
+                  onSelectView={handleSelectView}
+                  onCreateView={handleOpenSaveDialog}
+                />
+              ) : null
+            }
             filterSheet={
               <FilterSheet
                 filters={filters}
@@ -213,6 +286,20 @@ export function SupplyListContent() {
           </div>
         </main>
       </div>
+
+      {/* Save view dialog */}
+      {userId && (
+        <SaveViewDialog
+          userId={userId}
+          open={isSaveDialogOpen}
+          onOpenChange={setIsSaveDialogOpen}
+          currentFilters={filters}
+          currentColumns={visibleColumns}
+          currentSortBy={sortBy}
+          currentSortOrder={sortOrder}
+          onSaved={handleViewSaved}
+        />
+      )}
     </div>
   );
 }
