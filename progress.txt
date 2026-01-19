@@ -52,3 +52,7 @@ Status: Claude session completed
 Iteration 12: 2026-01-19 00:32:20
 Working on: US-011: Add logistics schema tables
 Status: Complete - Added logistics tracking schema with shipments, caseShipments, and notifications tables. Key learning: Used v.id("tablename") for foreign key references following Convex patterns. Cached summaries (caseCount, totalWeightKg, projectNumbers) on shipments table reduce query complexity. Status unions with literals provide type safety for milestone tracking. See docs/dev-log/US-011.md for full details.
+Status: Claude session completed
+---
+Iteration 13: 2026-01-19 00:35:20
+Working on: US-012: Create shipment CRUD operations
