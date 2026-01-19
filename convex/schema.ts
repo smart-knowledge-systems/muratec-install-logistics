@@ -200,4 +200,87 @@ export default defineSchema({
   })
     .index("by_creator", ["createdBy"])
     .index("by_shared", ["isShared"]),
+
+  // Logistics Tracking Tables
+  shipments: defineTable({
+    shipmentId: v.string(), // User-defined or auto-generated
+    vesselName: v.optional(v.string()),
+    voyageNumber: v.optional(v.string()),
+
+    // Ports
+    portOfOrigin: v.optional(v.string()), // e.g., "Yokohama"
+    portOfDestination: v.optional(v.string()), // e.g., "Long Beach"
+
+    // Milestones
+    factoryOutDate: v.optional(v.number()),
+    etd: v.optional(v.number()),
+    atd: v.optional(v.number()),
+    eta: v.optional(v.number()),
+    ata: v.optional(v.number()),
+    customsClearedDate: v.optional(v.number()),
+    deliveredDate: v.optional(v.number()),
+
+    // Original ETA for delay tracking
+    originalEta: v.optional(v.number()),
+
+    // Status
+    status: v.union(
+      v.literal("at_factory"),
+      v.literal("in_transit"),
+      v.literal("at_port"),
+      v.literal("customs"),
+      v.literal("delivered"),
+    ),
+
+    // Summary (cached)
+    caseCount: v.number(),
+    totalWeightKg: v.number(),
+    projectNumbers: v.array(v.string()),
+
+    // Notes
+    notes: v.optional(v.string()),
+    delayReason: v.optional(v.string()),
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_status", ["status"])
+    .index("by_eta", ["eta"])
+    .index("by_vessel", ["vesselName", "voyageNumber"]),
+
+  caseShipments: defineTable({
+    projectNumber: v.string(),
+    caseNumber: v.string(),
+    shipmentId: v.optional(v.id("shipments")),
+
+    // Case-specific overrides (if differs from shipment)
+    deliveredDate: v.optional(v.number()),
+    deliveryNotes: v.optional(v.string()),
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_case", ["projectNumber", "caseNumber"])
+    .index("by_shipment", ["shipmentId"]),
+
+  notifications: defineTable({
+    userId: v.id("users"),
+    type: v.union(
+      v.literal("arrival_reminder"),
+      v.literal("eta_change"),
+      v.literal("shipment_arrived"),
+      v.literal("delay_alert"),
+    ),
+    title: v.string(),
+    message: v.string(),
+    relatedShipmentId: v.optional(v.id("shipments")),
+    relatedProjectNumber: v.optional(v.string()),
+
+    read: v.boolean(),
+    readAt: v.optional(v.number()),
+
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_unread", ["userId", "read"]),
 });
