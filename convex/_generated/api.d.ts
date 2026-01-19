@@ -9,6 +9,7 @@
  */
 
 import type * as analytics from "../analytics.js";
+import type * as caseTracking from "../caseTracking.js";
 import type * as cron from "../cron.js";
 import type * as featureRequests from "../featureRequests.js";
 import type * as logisticsJobs from "../logisticsJobs.js";
@@ -26,6 +27,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   analytics: typeof analytics;
+  caseTracking: typeof caseTracking;
   cron: typeof cron;
   featureRequests: typeof featureRequests;
   logisticsJobs: typeof logisticsJobs;

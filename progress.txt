@@ -97,3 +97,7 @@ Status: Claude session completed
 ---
 Iteration 23: 2026-01-19 01:29:10
 Working on: US-021: Add field operations schema tables
+Status: Claude session completed
+---
+Iteration 24: 2026-01-19 01:32:31
+Working on: US-022: Create case move-in functions
