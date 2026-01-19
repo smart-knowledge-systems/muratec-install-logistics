@@ -11,6 +11,7 @@ import { SupplyListSkeleton } from "./supply-list-skeleton";
 import { SupplyTable } from "./views/supply-table";
 import { SupplyCardList } from "./views/supply-card-list";
 import { FilterSidebar, type FilterState } from "./filters/filter-sidebar";
+import { FilterSheet } from "./filters/filter-sheet";
 
 export function SupplyListContent() {
   const { user, logout } = useAuth();
@@ -100,6 +101,14 @@ export function SupplyListContent() {
   // Convex subscriptions auto-update, so this just triggers the visual refresh indicator
   const handleRefresh = () => {};
 
+  // Calculate active filter count
+  const activeFilterCount =
+    (filters.projectNumber ? 1 : 0) +
+    filters.pwbs.length +
+    filters.caseNumbers.length +
+    filters.palletNumbers.length +
+    filters.plNumbers.length;
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <SupplyListHeader user={user} logout={logout} />
@@ -115,7 +124,17 @@ export function SupplyListContent() {
 
         {/* Main content area */}
         <main className="flex-1 flex flex-col">
-          <SupplyListToolbar />
+          <SupplyListToolbar
+            filters={filters}
+            itemCount={items.length}
+            filterSheet={
+              <FilterSheet
+                filters={filters}
+                onFiltersChange={handleFiltersChange}
+                activeFilterCount={activeFilterCount}
+              />
+            }
+          />
 
           <div className="flex-1 p-4">
             {isLoading ? (

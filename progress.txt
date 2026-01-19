@@ -33,3 +33,9 @@ Status: Claude session completed
 ---
 Iteration 8: 2026-01-19 00:06:55
 Working on: US-007: Build filter sidebar for desktop
+Status: Claude session completed
+---
+Iteration 9: 2026-01-19 00:12:19
+Working on: US-008: Build filter sheet for mobile
+Status: Complete - Implemented mobile filter sheet using shadcn/ui Sheet component with bottom drawer pattern. Key learning: Using local filter state with explicit Apply button provides better UX on mobile by batching filter changes and preventing accidental URL updates. Active filter count badge improves discoverability. Sheet reuses same filter logic as desktop sidebar for consistency. See docs/dev-log/US-008.md for full details.
+Status: Claude session completed
