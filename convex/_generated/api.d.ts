@@ -22,6 +22,7 @@ import type * as savedViews from "../savedViews.js";
 import type * as shipments from "../shipments.js";
 import type * as supplyItems from "../supplyItems.js";
 import type * as users from "../users.js";
+import type * as workPackages from "../workPackages.js";
 
 import type {
   ApiFromModules,
@@ -44,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   shipments: typeof shipments;
   supplyItems: typeof supplyItems;
   users: typeof users;
+  workPackages: typeof workPackages;
 }>;
 
 /**
