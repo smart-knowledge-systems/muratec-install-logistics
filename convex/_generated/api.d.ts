@@ -14,6 +14,7 @@ import type * as cron from "../cron.js";
 import type * as featureRequests from "../featureRequests.js";
 import type * as fieldDashboard from "../fieldDashboard.js";
 import type * as fieldOperations from "../fieldOperations.js";
+import type * as installation from "../installation.js";
 import type * as logisticsJobs from "../logisticsJobs.js";
 import type * as materialReadiness from "../materialReadiness.js";
 import type * as notifications from "../notifications.js";
@@ -42,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   featureRequests: typeof featureRequests;
   fieldDashboard: typeof fieldDashboard;
   fieldOperations: typeof fieldOperations;
+  installation: typeof installation;
   logisticsJobs: typeof logisticsJobs;
   materialReadiness: typeof materialReadiness;
   notifications: typeof notifications;
