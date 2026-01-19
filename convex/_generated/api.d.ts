@@ -9,7 +9,9 @@
  */
 
 import type * as analytics from "../analytics.js";
+import type * as cron from "../cron.js";
 import type * as featureRequests from "../featureRequests.js";
+import type * as logisticsJobs from "../logisticsJobs.js";
 import type * as notifications from "../notifications.js";
 import type * as savedViews from "../savedViews.js";
 import type * as shipments from "../shipments.js";
@@ -24,7 +26,9 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   analytics: typeof analytics;
+  cron: typeof cron;
   featureRequests: typeof featureRequests;
+  logisticsJobs: typeof logisticsJobs;
   notifications: typeof notifications;
   savedViews: typeof savedViews;
   shipments: typeof shipments;
