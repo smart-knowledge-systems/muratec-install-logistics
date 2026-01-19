@@ -174,3 +174,7 @@ Working on: US-037: Build PWBS dependency editor
 Status: Complete - Built comprehensive PWBS dependency editor allowing schedulers to define installation order between PWBS categories. Key learning: Component supports dual modes (default template editing vs project-specific overrides) with clear visual distinction via badges and mode toggle. Three dependency types (Finish-to-Start, Start-to-Start, Parallel) accommodate various installation sequencing needs. Immediate persistence pattern with toast feedback provides responsive UX. Created two routes: /projects/[projectNumber]/settings for project-specific editing and /projects/dependencies for global defaults. Added pwbsCategories query functions to populate category selectors. Override detection logic helps users understand which defaults have been customized per project. See docs/dev-log/US-037.md for full details.
 Status: Claude session completed
 ---
+Status: Claude session completed
+---
+Iteration 11: 2026-01-19 06:06:18
+Working on: US-038: Build Gantt chart timeline

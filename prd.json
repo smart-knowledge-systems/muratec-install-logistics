@@ -640,7 +640,7 @@
         "bun check passes"
       ],
       "priority": 38,
-      "passes": false,
+      "passes": true,
       "notes": "Consider gantt-task-react library"
     },
     {
