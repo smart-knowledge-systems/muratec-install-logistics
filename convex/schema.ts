@@ -152,7 +152,23 @@ export default defineSchema({
     .index("by_case_number", ["caseNumber"])
     .index("by_source_file", ["sourceFileId"])
     .index("by_pallet", ["palletNumber"])
-    .index("by_pl_number", ["plNumber"]),
+    .index("by_pl_number", ["plNumber"])
+    // Compound indexes for optimized filtering
+    .index("by_project_pwbs", ["projectNumber", "pwbs"])
+    .index("by_project_case", ["projectNumber", "caseNumber"])
+    .index("by_project_pallet", ["projectNumber", "palletNumber"])
+    .index("by_project_pl", ["projectNumber", "plNumber"])
+    // Search index for text search on description
+    .searchIndex("search_items", {
+      searchField: "description",
+      filterFields: [
+        "projectNumber",
+        "pwbs",
+        "caseNumber",
+        "palletNumber",
+        "plNumber",
+      ],
+    }),
 
   pwbsCategories: defineTable({
     code: v.string(), // e.g., "K11W"
@@ -530,4 +546,78 @@ export default defineSchema({
   })
     .index("by_project_date", ["projectNumber", "snapshotDate"])
     .index("by_scope", ["projectNumber", "scope", "scopeId"]),
+
+  // ===== Optimization Cache Tables =====
+
+  // Pre-computed filter options to avoid full table scans
+  supplyItemFilterOptions: defineTable({
+    projectNumber: v.optional(v.string()), // null = global (all projects)
+    pwbs: v.array(v.string()),
+    caseNumbers: v.array(v.string()),
+    palletNumbers: v.array(v.string()),
+    plNumbers: v.array(v.string()),
+    projectNumbers: v.array(v.string()),
+    updatedAt: v.number(),
+  }).index("by_project", ["projectNumber"]),
+
+  // Pre-computed EVM metrics cache
+  evmCache: defineTable({
+    projectNumber: v.string(),
+    scope: v.union(
+      v.literal("project"),
+      v.literal("pwbs"),
+      v.literal("work_package"),
+    ),
+    scopeId: v.optional(v.string()), // pwbs code or plNumber if not project-level
+
+    // Core metrics
+    bac: v.number(), // Budget at Completion (total items)
+    pv: v.number(), // Planned Value (items scheduled by date)
+    ev: v.number(), // Earned Value (items installed by date)
+    sv: v.number(), // Schedule Variance
+    spi: v.number(), // Schedule Performance Index
+
+    // Derived metrics
+    percentComplete: v.number(),
+    itemsRemaining: v.number(),
+    eac: v.optional(v.number()), // Estimate at Completion
+
+    // Status counts
+    notStartedCount: v.number(),
+    inProgressCount: v.number(),
+    installedCount: v.number(),
+    issueCount: v.number(),
+
+    updatedAt: v.number(),
+  })
+    .index("by_project", ["projectNumber"])
+    .index("by_project_scope", ["projectNumber", "scope", "scopeId"]),
+
+  // Pre-computed field dashboard summary cache
+  dashboardSummaryCache: defineTable({
+    projectNumber: v.string(),
+
+    // Move-in stats
+    totalCases: v.number(),
+    arrivedCases: v.number(),
+    overdueCases: v.number(),
+    damagedCases: v.number(),
+
+    // Inventory stats
+    completedInventoryCases: v.number(),
+    inProgressInventoryCases: v.number(),
+    discrepancyCases: v.number(),
+
+    // Picking stats
+    totalWorkPackages: v.number(),
+    completedWorkPackages: v.number(),
+    inProgressWorkPackages: v.number(),
+
+    // Discrepancy counts
+    missingItems: v.number(),
+    damagedItems: v.number(),
+    extraItems: v.number(),
+
+    updatedAt: v.number(),
+  }).index("by_project", ["projectNumber"]),
 });

@@ -5,6 +5,7 @@ import type { MutationCtx } from "./_generated/server";
 /**
  * Internal helper function to calculate readiness for a work package
  * Shared logic used by both single and batch calculations
+ * OPTIMIZED: Uses batch lookups to avoid N+1 queries
  */
 async function calculateReadinessInternal(
   ctx: MutationCtx,
@@ -48,9 +49,65 @@ async function calculateReadinessInternal(
     };
   }
 
+  // OPTIMIZATION: Batch fetch all related records upfront (4 queries instead of N)
+  const [allCaseTracking, allInventoryItems, allCaseShipments, pickingTasks] =
+    await Promise.all([
+      ctx.db
+        .query("caseTracking")
+        .withIndex("by_project", (q) =>
+          q.eq("projectNumber", args.projectNumber),
+        )
+        .collect(),
+      ctx.db
+        .query("inventoryItems")
+        .withIndex("by_project", (q) =>
+          q.eq("projectNumber", args.projectNumber),
+        )
+        .collect(),
+      ctx.db
+        .query("caseShipments")
+        .withIndex("by_shipment") // Using existing index, filter in memory
+        .collect(),
+      ctx.db
+        .query("pickingTasks")
+        .withIndex("by_work_package", (q) =>
+          q
+            .eq("projectNumber", args.projectNumber)
+            .eq("plNumber", args.plNumber),
+        )
+        .collect(),
+    ]);
+
+  // Create lookup maps for O(1) access
+  const caseTrackingMap = new Map(
+    allCaseTracking.map((ct) => [ct.caseNumber, ct]),
+  );
+  const inventoryItemMap = new Map(
+    allInventoryItems.map((item) => [
+      `${item.caseNumber}:${item.supplyItemId}`,
+      item,
+    ]),
+  );
+  const caseShipmentMap = new Map(
+    allCaseShipments
+      .filter((cs) => cs.projectNumber === args.projectNumber)
+      .map((cs) => [cs.caseNumber, cs]),
+  );
+
+  // Pre-fetch all shipments for cases in this project that have shipmentIds
+  const shipmentIds = new Set(
+    Array.from(caseShipmentMap.values())
+      .filter((cs) => cs.shipmentId)
+      .map((cs) => cs.shipmentId!),
+  );
+  const shipmentsPromises = Array.from(shipmentIds).map((id) => ctx.db.get(id));
+  const shipments = await Promise.all(shipmentsPromises);
+  const shipmentMap = new Map(
+    shipments.filter(Boolean).map((s) => [s!._id, s!]),
+  );
+
   const totalItems = supplyItems.length;
   let inventoriedItems = 0;
-  let pickedItems = 0;
   let inTransitItems = 0;
   let missingItems = 0;
   const blockedCases = new Set<string>();
@@ -61,20 +118,12 @@ async function calculateReadinessInternal(
     status: string;
   }> = [];
 
-  // Check inventory status for each item
+  // Process all supply items with O(1) lookups
   for (const item of supplyItems) {
     if (!item.caseNumber) continue;
 
-    // Check if case has been inventoried
-    const caseTracking = await ctx.db
-      .query("caseTracking")
-      .withIndex("by_case", (q) =>
-        q
-          .eq("projectNumber", args.projectNumber)
-          .eq("caseNumber", item.caseNumber as string),
-      )
-      .first();
-
+    // Check if case has been inventoried (O(1) lookup)
+    const caseTracking = caseTrackingMap.get(item.caseNumber);
     const isInventoried =
       caseTracking?.inventoryStatus === "complete" ||
       caseTracking?.inventoryStatus === "discrepancy";
@@ -82,16 +131,10 @@ async function calculateReadinessInternal(
     if (isInventoried) {
       inventoriedItems++;
 
-      // Check if this specific item is verified or has an issue
-      const inventoryItem = await ctx.db
-        .query("inventoryItems")
-        .withIndex("by_case", (q) =>
-          q
-            .eq("projectNumber", args.projectNumber)
-            .eq("caseNumber", item.caseNumber as string),
-        )
-        .filter((q) => q.eq(q.field("supplyItemId"), item._id))
-        .first();
+      // Check if this specific item is verified or has an issue (O(1) lookup)
+      const inventoryItem = inventoryItemMap.get(
+        `${item.caseNumber}:${item._id}`,
+      );
 
       if (
         inventoryItem?.status === "missing" ||
@@ -100,18 +143,11 @@ async function calculateReadinessInternal(
         missingItems++;
       }
     } else {
-      // Case not inventoried - check if it's in transit
-      const caseShipment = await ctx.db
-        .query("caseShipments")
-        .withIndex("by_case", (q) =>
-          q
-            .eq("projectNumber", args.projectNumber)
-            .eq("caseNumber", item.caseNumber as string),
-        )
-        .first();
+      // Case not inventoried - check if it's in transit (O(1) lookup)
+      const caseShipment = caseShipmentMap.get(item.caseNumber);
 
       if (caseShipment?.shipmentId) {
-        const shipment = await ctx.db.get(caseShipment.shipmentId);
+        const shipment = shipmentMap.get(caseShipment.shipmentId);
 
         if (
           shipment &&
@@ -140,15 +176,10 @@ async function calculateReadinessInternal(
     }
   }
 
-  // Check picking status
-  const pickingTasks = await ctx.db
-    .query("pickingTasks")
-    .withIndex("by_work_package", (q) =>
-      q.eq("projectNumber", args.projectNumber).eq("plNumber", args.plNumber),
-    )
-    .collect();
-
-  pickedItems = pickingTasks.filter((task) => task.status === "picked").length;
+  // Count picked items
+  const pickedItems = pickingTasks.filter(
+    (task) => task.status === "picked",
+  ).length;
 
   // Determine overall readiness status
   let readinessStatus: "ready" | "partial" | "blocked";

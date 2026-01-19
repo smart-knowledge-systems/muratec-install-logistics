@@ -186,7 +186,7 @@ export default function PwbsEvmDetailPage() {
                 {pwbsEvm.sv.toLocaleString()}
               </span>
             </div>
-            {pwbsEvm.eac !== null && (
+            {pwbsEvm.eac !== undefined && (
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">EAC</span>
                 <span className="font-semibold">

@@ -146,6 +146,7 @@ export const updatePickStatus = mutation({
  * Get pick list for a work package with current statuses
  * Returns items sorted by case location for efficient routing
  * Includes inventory status to warn about uninventoried cases
+ * OPTIMIZED: Uses batch lookups to avoid N+1 queries
  */
 export const getPickListByWorkPackage = query({
   args: {
@@ -161,46 +162,65 @@ export const getPickListByWorkPackage = query({
       )
       .collect();
 
-    // Get supply item details and inventory status for each task
-    const pickListItems = await Promise.all(
-      pickingTasks.map(async (task) => {
-        const supplyItem = await ctx.db.get(task.supplyItemId);
+    if (pickingTasks.length === 0) {
+      return [];
+    }
 
-        // Get case tracking status for inventory info
-        let caseInventoried = false;
-        if (task.caseNumber) {
-          const caseTracking = await ctx.db
-            .query("caseTracking")
-            .withIndex("by_case", (q) =>
-              q
-                .eq("projectNumber", args.projectNumber)
-                .eq("caseNumber", task.caseNumber as string),
-            )
-            .first();
-
-          caseInventoried =
-            caseTracking?.inventoryStatus === "complete" ||
-            caseTracking?.inventoryStatus === "discrepancy";
-        }
-
-        return {
-          taskId: task._id,
-          supplyItemId: task.supplyItemId,
-          itemNumber: supplyItem?.itemNumber,
-          partNumber: supplyItem?.partNumber,
-          description: supplyItem?.description,
-          requiredQuantity: task.requiredQuantity,
-          pickedQuantity: task.pickedQuantity,
-          caseNumber: task.caseNumber,
-          caseLocation: task.caseLocation,
-          status: task.status,
-          pickedAt: task.pickedAt,
-          pickedBy: task.pickedBy,
-          notes: task.notes,
-          caseInventoried,
-        };
-      }),
+    // OPTIMIZATION: Batch fetch all supply items and case tracking upfront
+    // Collect unique supply item IDs and case numbers
+    const supplyItemIds = pickingTasks.map((task) => task.supplyItemId);
+    const _caseNumbers = new Set(
+      pickingTasks.map((task) => task.caseNumber).filter(Boolean) as string[],
     );
+
+    // Batch fetch supply items (single Promise.all for known IDs)
+    const supplyItemsPromises = supplyItemIds.map((id) => ctx.db.get(id));
+    const supplyItems = await Promise.all(supplyItemsPromises);
+    const supplyItemMap = new Map(
+      supplyItems.filter(Boolean).map((item) => [item!._id.toString(), item!]),
+    );
+
+    // Batch fetch case tracking records for this project (single query)
+    const allCaseTracking = await ctx.db
+      .query("caseTracking")
+      .withIndex("by_project", (q) => q.eq("projectNumber", args.projectNumber))
+      .collect();
+
+    // Create lookup map for case tracking
+    const caseTrackingMap = new Map(
+      allCaseTracking.map((ct) => [ct.caseNumber, ct]),
+    );
+
+    // Build pick list items with O(1) lookups
+    const pickListItems = pickingTasks.map((task) => {
+      const supplyItem = supplyItemMap.get(task.supplyItemId.toString());
+
+      // Check case inventory status (O(1) lookup)
+      let caseInventoried = false;
+      if (task.caseNumber) {
+        const caseTracking = caseTrackingMap.get(task.caseNumber);
+        caseInventoried =
+          caseTracking?.inventoryStatus === "complete" ||
+          caseTracking?.inventoryStatus === "discrepancy";
+      }
+
+      return {
+        taskId: task._id,
+        supplyItemId: task.supplyItemId,
+        itemNumber: supplyItem?.itemNumber,
+        partNumber: supplyItem?.partNumber,
+        description: supplyItem?.description,
+        requiredQuantity: task.requiredQuantity,
+        pickedQuantity: task.pickedQuantity,
+        caseNumber: task.caseNumber,
+        caseLocation: task.caseLocation,
+        status: task.status,
+        pickedAt: task.pickedAt,
+        pickedBy: task.pickedBy,
+        notes: task.notes,
+        caseInventoried,
+      };
+    });
 
     // Sort by case location (nulls last), then by case number
     const sortedItems = pickListItems.sort((a, b) => {
@@ -227,6 +247,7 @@ export const getPickListByWorkPackage = query({
  * Get kit readiness status for a work package
  * Returns complete, partial, or not_started based on picking status
  * Considers inventory status when determining readiness
+ * OPTIMIZED: Uses batch lookup for case tracking
  */
 export const getKitReadiness = query({
   args: {
@@ -259,19 +280,22 @@ export const getKitReadiness = query({
       };
     }
 
-    // Check inventory status for each task
+    // OPTIMIZATION: Batch fetch all case tracking records for the project
+    const allCaseTracking = await ctx.db
+      .query("caseTracking")
+      .withIndex("by_project", (q) => q.eq("projectNumber", args.projectNumber))
+      .collect();
+
+    // Create lookup map for O(1) access
+    const caseTrackingMap = new Map(
+      allCaseTracking.map((ct) => [ct.caseNumber, ct]),
+    );
+
+    // Check inventory status with O(1) lookups
     let uninventoriedItems = 0;
     for (const task of pickingTasks) {
       if (task.caseNumber) {
-        const caseTracking = await ctx.db
-          .query("caseTracking")
-          .withIndex("by_case", (q) =>
-            q
-              .eq("projectNumber", args.projectNumber)
-              .eq("caseNumber", task.caseNumber as string),
-          )
-          .first();
-
+        const caseTracking = caseTrackingMap.get(task.caseNumber);
         const isInventoried =
           caseTracking?.inventoryStatus === "complete" ||
           caseTracking?.inventoryStatus === "discrepancy";

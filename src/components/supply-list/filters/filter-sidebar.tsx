@@ -36,8 +36,8 @@ export function FilterSidebar({
   isCollapsed,
   onToggleCollapse,
 }: FilterSidebarProps) {
-  // Fetch available filter options based on current project
-  const filterOptions = useQuery(api.supplyItems.getFilterOptions, {
+  // Fetch available filter options based on current project (using optimized cache)
+  const filterOptions = useQuery(api.supplyItemFilterOptions.get, {
     projectNumber: filters.projectNumber,
   });
 

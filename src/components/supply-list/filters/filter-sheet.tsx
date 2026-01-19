@@ -38,8 +38,8 @@ export function FilterSheet({
   const [isOpen, setIsOpen] = useState(false);
   const [localFilters, setLocalFilters] = useState<FilterState>(filters);
 
-  // Fetch available filter options based on current project
-  const filterOptions = useQuery(api.supplyItems.getFilterOptions, {
+  // Fetch available filter options based on current project (using optimized cache)
+  const filterOptions = useQuery(api.supplyItemFilterOptions.get, {
     projectNumber: localFilters.projectNumber,
   });
 

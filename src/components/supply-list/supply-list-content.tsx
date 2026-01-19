@@ -119,8 +119,8 @@ export function SupplyListContent() {
     };
   }, [filters, router]);
 
-  // Fetch available projects for the project switcher
-  const filterOptions = useQuery(api.supplyItems.getFilterOptions, {
+  // Fetch available projects for the project switcher (using optimized cache)
+  const filterOptions = useQuery(api.supplyItemFilterOptions.get, {
     projectNumber: undefined, // Get all projects
   });
 

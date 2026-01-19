@@ -182,7 +182,7 @@ export default function ProjectEvmDetailPage() {
                 {projectEvm.sv.toLocaleString()}
               </span>
             </div>
-            {projectEvm.eac !== null && (
+            {projectEvm.eac !== undefined && (
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">EAC</span>
                 <span className="font-semibold">
