@@ -13,6 +13,8 @@ import { SupplyCardList } from "./views/supply-card-list";
 import { FilterSidebar, type FilterState } from "./filters/filter-sidebar";
 import { FilterSheet } from "./filters/filter-sheet";
 
+const LAST_PROJECT_KEY = "supply-list-last-project";
+
 export function SupplyListContent() {
   const { user, logout } = useAuth();
   const router = useRouter();
@@ -22,9 +24,13 @@ export function SupplyListContent() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  // Initialize filters from URL query params
+  // Initialize filters from URL query params or localStorage
   const [filters, setFilters] = useState<FilterState>(() => {
-    const projectNumber = searchParams.get("project") || undefined;
+    const projectNumber =
+      searchParams.get("project") ||
+      (typeof window !== "undefined"
+        ? localStorage.getItem(LAST_PROJECT_KEY) || undefined
+        : undefined);
     const pwbs = searchParams.get("pwbs")?.split(",").filter(Boolean) || [];
     const caseNumbers =
       searchParams.get("cases")?.split(",").filter(Boolean) || [];
@@ -67,6 +73,13 @@ export function SupplyListContent() {
     router.push(newUrl, { scroll: false });
   }, [filters, router]);
 
+  // Fetch available projects for the project switcher
+  const filterOptions = useQuery(api.supplyItems.getFilterOptions, {
+    projectNumber: undefined, // Get all projects
+  });
+
+  const availableProjects = filterOptions?.projectNumbers ?? [];
+
   // Fetch supply items with pagination and filters
   const result = useQuery(api.supplyItems.list, {
     paginationOpts: { numItems: 50, cursor: null },
@@ -93,6 +106,46 @@ export function SupplyListContent() {
     setFilters(newFilters);
   };
 
+  const handleProjectChange = (projectNumber: string | undefined) => {
+    setFilters({ ...filters, projectNumber });
+    // Store last viewed project in localStorage
+    if (projectNumber) {
+      localStorage.setItem(LAST_PROJECT_KEY, projectNumber);
+    } else {
+      localStorage.removeItem(LAST_PROJECT_KEY);
+    }
+  };
+
+  const handleRemoveFilter = (
+    filterType: keyof FilterState,
+    value?: string,
+  ) => {
+    if (filterType === "projectNumber") {
+      setFilters({ ...filters, projectNumber: undefined });
+      localStorage.removeItem(LAST_PROJECT_KEY);
+    } else if (filterType === "pwbs" && value) {
+      setFilters({
+        ...filters,
+        pwbs: filters.pwbs.filter((p) => p !== value),
+      });
+    } else if (filterType === "caseNumbers" && value) {
+      setFilters({
+        ...filters,
+        caseNumbers: filters.caseNumbers.filter((c) => c !== value),
+      });
+    } else if (filterType === "palletNumbers" && value) {
+      setFilters({
+        ...filters,
+        palletNumbers: filters.palletNumbers.filter((p) => p !== value),
+      });
+    } else if (filterType === "plNumbers" && value) {
+      setFilters({
+        ...filters,
+        plNumbers: filters.plNumbers.filter((p) => p !== value),
+      });
+    }
+  };
+
   const handleToggleSidebarCollapse = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
@@ -111,7 +164,13 @@ export function SupplyListContent() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <SupplyListHeader user={user} logout={logout} />
+      <SupplyListHeader
+        user={user}
+        logout={logout}
+        availableProjects={availableProjects}
+        selectedProject={filters.projectNumber}
+        onProjectChange={handleProjectChange}
+      />
 
       <div className="flex-1 flex flex-col lg:flex-row">
         {/* Desktop filter sidebar */}
@@ -127,6 +186,7 @@ export function SupplyListContent() {
           <SupplyListToolbar
             filters={filters}
             itemCount={items.length}
+            onRemoveFilter={handleRemoveFilter}
             filterSheet={
               <FilterSheet
                 filters={filters}

@@ -2,20 +2,42 @@
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Grid3x3, Table } from "lucide-react";
+import { Grid3x3, Table, X } from "lucide-react";
 import type { FilterState } from "./filters/filter-sidebar";
 
 interface SupplyListToolbarProps {
   filters?: FilterState;
   itemCount?: number;
   filterSheet?: React.ReactNode;
+  onRemoveFilter?: (filterType: keyof FilterState, value?: string) => void;
 }
 
 export function SupplyListToolbar({
   filters,
   itemCount,
   filterSheet,
+  onRemoveFilter,
 }: SupplyListToolbarProps) {
+  const handleRemoveProjectFilter = () => {
+    onRemoveFilter?.("projectNumber");
+  };
+
+  const handleRemovePwbsFilter = (pwbs: string) => {
+    onRemoveFilter?.("pwbs", pwbs);
+  };
+
+  const handleRemoveCaseFilter = (caseNumber: string) => {
+    onRemoveFilter?.("caseNumbers", caseNumber);
+  };
+
+  const handleRemovePalletFilter = (palletNumber: string) => {
+    onRemoveFilter?.("palletNumbers", palletNumber);
+  };
+
+  const handleRemovePlNumberFilter = (plNumber: string) => {
+    onRemoveFilter?.("plNumbers", plNumber);
+  };
+
   return (
     <div className="border-b bg-background">
       <div className="px-4 py-3 flex items-center justify-between gap-4">
@@ -28,13 +50,71 @@ export function SupplyListToolbar({
             All Items
           </Button>
 
-          {/* Active filter chips - will be implemented in US-009 */}
+          {/* Active filter chips */}
           {filters?.projectNumber && (
-            <Badge variant="secondary" className="gap-1">
+            <Badge variant="secondary" className="gap-1.5">
               Project: {filters.projectNumber}
-              <button className="ml-1 hover:text-destructive">×</button>
+              <button
+                onClick={handleRemoveProjectFilter}
+                className="ml-0.5 hover:text-destructive transition-colors"
+                aria-label="Remove project filter"
+              >
+                <X className="h-3 w-3" />
+              </button>
             </Badge>
           )}
+
+          {filters?.pwbs.map((pwbs) => (
+            <Badge key={pwbs} variant="secondary" className="gap-1.5">
+              PWBS: {pwbs}
+              <button
+                onClick={() => handleRemovePwbsFilter(pwbs)}
+                className="ml-0.5 hover:text-destructive transition-colors"
+                aria-label={`Remove PWBS filter ${pwbs}`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+
+          {filters?.caseNumbers.map((caseNumber) => (
+            <Badge key={caseNumber} variant="secondary" className="gap-1.5">
+              Case: {caseNumber}
+              <button
+                onClick={() => handleRemoveCaseFilter(caseNumber)}
+                className="ml-0.5 hover:text-destructive transition-colors"
+                aria-label={`Remove case filter ${caseNumber}`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+
+          {filters?.palletNumbers.map((palletNumber) => (
+            <Badge key={palletNumber} variant="secondary" className="gap-1.5">
+              Pallet: {palletNumber}
+              <button
+                onClick={() => handleRemovePalletFilter(palletNumber)}
+                className="ml-0.5 hover:text-destructive transition-colors"
+                aria-label={`Remove pallet filter ${palletNumber}`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+
+          {filters?.plNumbers.map((plNumber) => (
+            <Badge key={plNumber} variant="secondary" className="gap-1.5">
+              Work Package: {plNumber}
+              <button
+                onClick={() => handleRemovePlNumberFilter(plNumber)}
+                className="ml-0.5 hover:text-destructive transition-colors"
+                aria-label={`Remove work package filter ${plNumber}`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
         </div>
 
         <div className="flex items-center gap-2">
