@@ -1,0 +1,598 @@
+{
+  "project": "MuratecInstallLogistics",
+  "branchName": "feat/user-stories-review-ux",
+  "description": "User stories review UX improvements with collapsible cards, inline editing, and analytics tracking",
+  "referenceSpec": "tasks/prd-user-stories-review-ux.md",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Update Convex schema with new fields",
+      "description": "As a developer, I need the schema updated to support prompts array, generationStatus, and submittedAt timestamp",
+      "acceptanceCriteria": [
+        "Add generationStatus field: 'idle' | 'generating' | 'complete' | 'error'",
+        "Add prompts array: { content: string, createdAt: number }[]",
+        "Add submittedAt: optional number timestamp",
+        "Remove any boolean submitted field if present",
+        "bun check passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Schema changes must come first as other stories depend on these fields"
+    },
+    {
+      "id": "US-002",
+      "title": "Add createDraft mutation for first chunk persistence",
+      "description": "As a developer, I need a mutation to create a draft feature request when the first stream chunk arrives",
+      "acceptanceCriteria": [
+        "createDraft mutation accepts: title, description (first prompt), authorId, authorEmail",
+        "Sets generationStatus to 'generating'",
+        "Initializes prompts array with first prompt",
+        "Sets status to 'draft'",
+        "Returns the created document ID",
+        "bun check passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Add updateGeneratedContent mutation",
+      "description": "As a developer, I need a mutation to update prdContent and userStories during streaming",
+      "acceptanceCriteria": [
+        "updateGeneratedContent accepts: id, prdContent (optional), userStories (optional)",
+        "Updates only provided fields",
+        "Updates updatedAt timestamp",
+        "bun check passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Add updateGenerationStatus mutation",
+      "description": "As a developer, I need a mutation to set generation status",
+      "acceptanceCriteria": [
+        "updateGenerationStatus accepts: id, generationStatus",
+        "Validates status is one of: idle, generating, complete, error",
+        "Updates updatedAt timestamp",
+        "bun check passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Add addPrompt mutation for refinement history",
+      "description": "As a developer, I need a mutation to append prompts to the history array",
+      "acceptanceCriteria": [
+        "addPrompt accepts: id, content (prompt text)",
+        "Appends new prompt object with content and createdAt timestamp",
+        "Updates updatedAt timestamp",
+        "bun check passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Add submit mutation with submittedAt timestamp",
+      "description": "As a developer, I need a mutation to mark a feature request as submitted",
+      "acceptanceCriteria": [
+        "submit mutation accepts: id",
+        "Sets submittedAt to Date.now()",
+        "Sets status to 'submitted'",
+        "bun check passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Add server-side logging to API route",
+      "description": "As a developer, I want server-side logs for request metadata, timing, and errors",
+      "acceptanceCriteria": [
+        "Log request start with metadata: authorEmail, isRefinement, prompt count",
+        "Log stream duration on completion",
+        "Log any errors with full context",
+        "Logs include timestamps",
+        "bun check passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Update API route to accept refinement context",
+      "description": "As a developer, I need the API route to accept prompts history and current content for refinements",
+      "acceptanceCriteria": [
+        "Accept optional fields: prompts, currentPrd, currentStories, isRefinement",
+        "Modify system prompt for refinements to include iteration context",
+        "Include prompt history in refinement system prompt",
+        "Include current PRD and stories state in refinement prompt",
+        "bun check passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Add console logging to streaming hook",
+      "description": "As a developer, I want console logs showing chunks, state transitions, and timing",
+      "acceptanceCriteria": [
+        "Log each chunk with timestamp and byte count",
+        "Log state transitions: input → generating → review",
+        "Log parsing results: isPrdComplete, isStoriesComplete",
+        "Log elapsed time on completion",
+        "Logs prefixed with [StreamDebug] for easy filtering",
+        "bun check passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Create DebugPanel component",
+      "description": "As a developer, I want a visual debug panel showing stream state and metrics",
+      "acceptanceCriteria": [
+        "Panel shows: raw stream output (monospace, scrolling)",
+        "Panel shows: parsed PRD/stories state",
+        "Panel shows: chunk count, bytes received, elapsed time",
+        "Panel shows: current parsing state (awaiting PRD_START, in PRD, etc.)",
+        "Only renders when NODE_ENV === 'development'",
+        "bun check passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Add keyboard shortcut toggle for debug panel",
+      "description": "As a developer, I want to toggle the debug panel with Ctrl+Shift+D",
+      "acceptanceCriteria": [
+        "Ctrl+Shift+D toggles debug panel visibility",
+        "Panel state persists during session",
+        "Keyboard listener only active in development mode",
+        "bun check passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Create Convex document on first stream chunk",
+      "description": "As a user, I want my feature request saved immediately when generation starts",
+      "acceptanceCriteria": [
+        "Call createDraft mutation when first chunk received",
+        "Store returned document ID in hook state",
+        "Subsequent updates use this document ID",
+        "bun check passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Update Convex incrementally during streaming",
+      "description": "As a user, I want my PRD saved progressively as it generates",
+      "acceptanceCriteria": [
+        "Call updateGeneratedContent with debounce (500ms)",
+        "Update prdContent when PRD section has new content",
+        "Update userStories when stories section has new content",
+        "Set generationStatus to 'complete' when both sections done",
+        "bun check passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Render PRD/stories from useQuery instead of local state",
+      "description": "As a user, I want to see my PRD from Convex so it persists across refreshes",
+      "acceptanceCriteria": [
+        "Use useQuery to fetch feature request by ID",
+        "Display prdContent and userStories from query result",
+        "Handle loading state while query pending",
+        "bun check passes",
+        "Verify in browser: refresh page during generation, content persists"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "Add auto-save for PRD edits with debounce",
+      "description": "As a user, I want my PRD edits saved automatically",
+      "acceptanceCriteria": [
+        "PRD textarea changes trigger debounced mutation (500ms)",
+        "Immediate save on blur",
+        "Show 'Saving...' indicator during save",
+        "Show 'Saved' indicator after successful save",
+        "bun check passes",
+        "Verify in browser: edit PRD, indicator shows saving/saved"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "Add auto-save for user stories edits",
+      "description": "As a user, I want my user story edits saved automatically",
+      "acceptanceCriteria": [
+        "Story edits trigger debounced mutation (500ms)",
+        "Immediate save on blur",
+        "Show save indicator near edited field",
+        "bun check passes",
+        "Verify in browser: edit a story, changes persist after refresh"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "Add Refine with AI button and prompt input",
+      "description": "As a user, I want to provide additional instructions to refine my PRD",
+      "acceptanceCriteria": [
+        "Refine with AI button appears in review step",
+        "Button opens inline text input below PRD",
+        "Text input has submit button",
+        "bun check passes",
+        "Verify in browser: button visible, input opens"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-018",
+      "title": "Display prompt history in refinement UI",
+      "description": "As a user, I want to see my previous instructions when refining",
+      "acceptanceCriteria": [
+        "Show collapsible prompt history list",
+        "Each prompt shows content and timestamp",
+        "Most recent prompt at top",
+        "bun check passes",
+        "Verify in browser: prompt history visible after refinement"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-019",
+      "title": "Implement refinement submission flow",
+      "description": "As a user, I want to submit refinement instructions and see updated content",
+      "acceptanceCriteria": [
+        "On submit: add prompt to Convex via addPrompt mutation",
+        "On submit: set generationStatus to 'generating'",
+        "On submit: call API with prompts, currentPrd, currentStories, isRefinement=true",
+        "Current content stays visible but greyed out during regeneration",
+        "New content replaces old when complete",
+        "bun check passes",
+        "Verify in browser: full refinement flow works"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "Update submit flow to use submittedAt timestamp",
+      "description": "As a user, I want my submission recorded with a timestamp",
+      "acceptanceCriteria": [
+        "Submit button calls submit mutation",
+        "submittedAt set on successful submission",
+        "UI shows submitted state based on submittedAt !== null",
+        "bun check passes",
+        "Verify in browser: submit works, timestamp recorded"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-021",
+      "title": "Add analytics table to Convex schema",
+      "description": "As a developer, I need an analytics table to store interaction counts",
+      "acceptanceCriteria": [
+        "Create analytics table with: featureRequestId, eventType, fieldType (optional), count, updatedAt",
+        "eventType is union of 'prd_read_more' | 'story_field_edit'",
+        "Add index by_feature_request on featureRequestId",
+        "Add index by_event_type on eventType",
+        "Run bunx convex dev --once successfully",
+        "bun check passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Schema change must come first"
+    },
+    {
+      "id": "US-022",
+      "title": "Create incrementEventCount mutation",
+      "description": "As a developer, I need a mutation to increment analytics counts",
+      "acceptanceCriteria": [
+        "incrementEventCount accepts: featureRequestId, eventType, fieldType (optional)",
+        "If record exists for featureRequestId+eventType+fieldType, increment count",
+        "If record doesn't exist, create with count=1",
+        "Update updatedAt timestamp on each call",
+        "bun check passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-023",
+      "title": "Create collapsible story card component",
+      "description": "As a user, I want to expand/collapse individual user story cards",
+      "acceptanceCriteria": [
+        "Create CollapsibleStoryCard component using shadcn Collapsible",
+        "Collapsed state shows: title and priority badge only",
+        "Expanded state shows: all story fields in form layout",
+        "Chevron icon indicates expand/collapse state",
+        "Smooth animation on expand/collapse",
+        "bun check passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-024",
+      "title": "Add inline form editing to story card",
+      "description": "As a user, I want to edit story fields directly without JSON",
+      "acceptanceCriteria": [
+        "Title editable via input field",
+        "asA, iWant, soThat editable via textareas",
+        "Priority editable via select dropdown",
+        "estimatedEffort editable via select dropdown",
+        "Acceptance criteria editable as list with add/remove buttons",
+        "No JSON view or toggle visible",
+        "bun check passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-025",
+      "title": "Update user stories editor with collapsible cards",
+      "description": "As a user, I want the first story expanded and rest collapsed by default",
+      "acceptanceCriteria": [
+        "Replace current story cards with CollapsibleStoryCard",
+        "First story expanded by default",
+        "Remaining stories collapsed by default",
+        "Each card individually expandable/collapsible",
+        "bun check passes",
+        "Verify in browser: first card expanded, others collapsed"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-026",
+      "title": "Add edit status restriction to story editor",
+      "description": "As a user, I should only be able to edit stories in draft or in_review status",
+      "acceptanceCriteria": [
+        "Accept status prop in user stories editor",
+        "Disable all form inputs when status is not 'draft' or 'in_review'",
+        "Show read-only view for other statuses",
+        "bun check passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-027",
+      "title": "Track story field edit events in analytics",
+      "description": "As a product owner, I want to see which story fields users edit most",
+      "acceptanceCriteria": [
+        "Call incrementEventCount on story field blur/save",
+        "eventType is 'story_field_edit'",
+        "fieldType captures which field: title, asA, iWant, soThat, priority, estimatedEffort, acceptanceCriteria",
+        "Increment happens on save, not every keystroke",
+        "bun check passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-028",
+      "title": "Create PRD overview extractor utility",
+      "description": "As a developer, I need a function to extract PRD title and overview",
+      "acceptanceCriteria": [
+        "Create extractPrdOverview function that parses markdown",
+        "Extract first H1 or H2 heading as title",
+        "Extract first paragraph after heading as overview",
+        "Return { title, overview, hasMore } object",
+        "hasMore is true if there's content beyond title+overview",
+        "bun check passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-029",
+      "title": "Add Read More button to PRD display",
+      "description": "As a user, I want to see a condensed PRD with option to expand",
+      "acceptanceCriteria": [
+        "PRD section shows only title and overview by default",
+        "Read More button appears when hasMore is true",
+        "Clicking Read More expands to show full PRD content",
+        "Button text changes to 'Show Less' when expanded",
+        "Expanded state persists during session (not saved to DB)",
+        "bun check passes",
+        "Verify in browser: PRD collapsed by default, expands on click"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-030",
+      "title": "Track PRD read more events in analytics",
+      "description": "As a product owner, I want to know how often users expand the full PRD",
+      "acceptanceCriteria": [
+        "Call incrementEventCount when Read More is clicked",
+        "eventType is 'prd_read_more'",
+        "fieldType is null/undefined for this event type",
+        "Only increment on expand, not on collapse",
+        "bun check passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-031",
+      "title": "Reorder layout to show stories above PRD",
+      "description": "As a user, I want to see user stories prominently above the PRD",
+      "acceptanceCriteria": [
+        "User stories section displayed above PRD section in review phase",
+        "Clear visual separation between sections",
+        "Section headers for 'User Stories' and 'PRD'",
+        "bun check passes",
+        "Verify in browser: stories appear first, PRD below"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-032",
+      "title": "Add Tailwind typography plugin for prose styling",
+      "description": "As a user, I want markdown content to display with proper heading sizes and formatting",
+      "acceptanceCriteria": [
+        "Install @tailwindcss/typography package",
+        "Configure typography plugin in Tailwind config or globals.css",
+        "Headings h1-h6 display with distinct font sizes",
+        "Lists, blockquotes, and code blocks render with proper styling",
+        "Dark mode works with prose-invert",
+        "bun check passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Foundation story - must be done first for visual testing of subsequent stories",
+      "referenceSpec": "tasks/prd-prd-display-editor-improvements.md"
+    },
+    {
+      "id": "US-033",
+      "title": "Install Tiptap editor dependencies",
+      "description": "As a developer, I need Tiptap packages installed for the rich text editor",
+      "acceptanceCriteria": [
+        "Install @tiptap/react, @tiptap/starter-kit, @tiptap/pm",
+        "Install @tiptap/extension-placeholder for placeholder text",
+        "Install tiptap-markdown for markdown serialization",
+        "All packages resolve without conflicts",
+        "bun check passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Dependencies must be installed before creating components",
+      "referenceSpec": "tasks/prd-prd-display-editor-improvements.md"
+    },
+    {
+      "id": "US-034",
+      "title": "Create base TiptapEditor component",
+      "description": "As a developer, I need a reusable Tiptap editor component",
+      "acceptanceCriteria": [
+        "Create src/components/ui/tiptap-editor.tsx",
+        "Component accepts value (markdown string) and onChange props",
+        "Uses tiptap-markdown to convert markdown to/from Tiptap document",
+        "Applies prose styling to match preview appearance",
+        "Supports dark mode via theme classes",
+        "bun check passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "",
+      "referenceSpec": "tasks/prd-prd-display-editor-improvements.md"
+    },
+    {
+      "id": "US-035",
+      "title": "Add keyboard shortcuts to TiptapEditor",
+      "description": "As a user, I want to use keyboard shortcuts for common formatting",
+      "acceptanceCriteria": [
+        "Ctrl/Cmd+B toggles bold text",
+        "Ctrl/Cmd+I toggles italic text",
+        "Ctrl/Cmd+Shift+1 sets heading level 1",
+        "Ctrl/Cmd+Shift+2 sets heading level 2",
+        "Shortcuts work on both Mac and Windows",
+        "bun check passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "",
+      "referenceSpec": "tasks/prd-prd-display-editor-improvements.md"
+    },
+    {
+      "id": "US-036",
+      "title": "Add floating toolbar to TiptapEditor",
+      "description": "As a user, I want a minimal toolbar when I select text for formatting",
+      "acceptanceCriteria": [
+        "Floating toolbar appears when text is selected",
+        "Toolbar includes: bold, italic, heading dropdown, bullet list, numbered list, code",
+        "Toolbar disappears when selection is cleared",
+        "Toolbar uses shadcn styling to match app theme",
+        "bun check passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "",
+      "referenceSpec": "tasks/prd-prd-display-editor-improvements.md"
+    },
+    {
+      "id": "US-037",
+      "title": "Integrate TiptapEditor into PrdEditor component",
+      "description": "As a user, I want the PRD edit tab to use the rich text editor",
+      "acceptanceCriteria": [
+        "Replace Textarea in edit tab with TiptapEditor component",
+        "Editor receives markdown and outputs markdown on change",
+        "Auto-save continues to work with 500ms debounce",
+        "Save indicator shows saving/saved status",
+        "onBlur triggers immediate save",
+        "bun check passes",
+        "Verify in browser: type # Hello, see it render as heading inline"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "",
+      "referenceSpec": "tasks/prd-prd-display-editor-improvements.md"
+    },
+    {
+      "id": "US-038",
+      "title": "Update PRD display pages with typography styles",
+      "description": "As a user, I want proper heading display on feature request detail pages",
+      "acceptanceCriteria": [
+        "src/app/feature-requests/[id]/page.tsx uses prose styling",
+        "src/app/admin/feature-requests/[id]/page.tsx uses prose styling",
+        "Headings render with proper visual hierarchy",
+        "All markdown elements display correctly",
+        "bun check passes",
+        "Verify in browser: headings show different sizes on detail pages"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "",
+      "referenceSpec": "tasks/prd-prd-display-editor-improvements.md"
+    }
+  ]
+}

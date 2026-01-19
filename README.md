@@ -1,5 +1,21 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## AI Feature Request System
+
+This project includes an AI-powered feature request system that generates PRDs and user stories using Claude. Key features:
+
+- Streaming AI generation with real-time preview
+- Rich text PRD editor with Tiptap
+- Inline user story editing
+- Auto-save with debouncing
+- Refinement workflow for iterating on generated content
+
+### Security Notice
+
+> **⚠️ Development Only**: The current authentication system uses simple email-based localStorage auth for development purposes. **Do not deploy to production** without implementing proper authentication (OAuth, Clerk, NextAuth, etc.).
+>
+> See `docs/dev-log/plan-auth-sprint.md` for the authentication implementation plan.
+
 ## Getting Started
 
 First, run the development server:
