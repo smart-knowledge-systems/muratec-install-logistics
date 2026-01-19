@@ -587,7 +587,7 @@
         "bun check passes"
       ],
       "priority": 35,
-      "passes": false,
+      "passes": true,
       "notes": "Integration point with field operations and logistics"
     },
     {

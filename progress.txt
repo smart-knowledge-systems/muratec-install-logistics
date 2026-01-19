@@ -158,3 +158,8 @@ Status: Claude session completed
 ---
 Iteration 7: 2026-01-19 05:40:14
 Working on: US-034: Create work package scheduling functions
+Status: Claude session completed
+---
+Iteration 8: 2026-01-19 05:46:56
+Working on: US-035: Create material readiness calculation
+Status: Complete - Implemented material readiness calculation functions that check inventory status, picking status, and logistics data to determine if work packages are ready/partial/blocked. Key learning: Shared internal helper function pattern avoids circular mutation calls when implementing both single and batch operations. Used 20% critical threshold to distinguish "partial" (minor gaps) from "blocked" (significant issues). Integration with three data sources (inventoryItems for verification status, pickingTasks for pick progress, caseShipments/shipments for in-transit tracking) provides comprehensive readiness assessment. ETA info returned for blocked cases enables proactive schedule adjustments. See docs/dev-log/US-035.md for full details.

@@ -15,6 +15,21 @@ const eslintConfig = defineConfig([
     // Convex generated files
     "convex/_generated/**",
   ]),
+  // Custom rule overrides
+  {
+    rules: {
+      // Allow underscore-prefixed variables to be intentionally unused
+      // This is a common pattern for destructuring to omit properties
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;
