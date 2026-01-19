@@ -8,6 +8,7 @@ import { SupplyListHeader } from "./supply-list-header";
 import { SupplyListToolbar } from "./supply-list-toolbar";
 import { SupplyListSkeleton } from "./supply-list-skeleton";
 import { SupplyTable } from "./views/supply-table";
+import { SupplyCardList } from "./views/supply-card-list";
 
 export function SupplyListContent() {
   const { user, logout } = useAuth();
@@ -28,6 +29,10 @@ export function SupplyListContent() {
     setSortBy(field);
     setSortOrder(order);
   };
+
+  // Callback for pull-to-refresh UI animation
+  // Convex subscriptions auto-update, so this just triggers the visual refresh indicator
+  const handleRefresh = () => {};
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -61,10 +66,7 @@ export function SupplyListContent() {
                   sortBy={sortBy}
                   sortOrder={sortOrder}
                 />
-                {/* Mobile card list will be implemented in US-006 */}
-                <div className="lg:hidden text-center text-muted-foreground py-8">
-                  Mobile card view (US-006)
-                </div>
+                <SupplyCardList items={items} onRefresh={handleRefresh} />
               </>
             )}
           </div>
