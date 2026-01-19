@@ -460,4 +460,73 @@ export default defineSchema({
     .index("by_project_number", ["projectNumber"])
     .index("by_status", ["status"])
     .index("by_customer", ["customer"]),
+
+  // Installation & EVM Tables
+  installationStatus: defineTable({
+    supplyItemId: v.id("supplyItems"),
+    projectNumber: v.string(),
+    plNumber: v.optional(v.string()),
+
+    status: v.union(
+      v.literal("not_started"),
+      v.literal("in_progress"),
+      v.literal("installed"),
+      v.literal("issue"),
+    ),
+
+    // Timestamps
+    startedAt: v.optional(v.number()),
+    installedAt: v.optional(v.number()),
+    installedBy: v.optional(v.id("users")),
+
+    // Issue tracking
+    issueType: v.optional(
+      v.union(
+        v.literal("missing_part"),
+        v.literal("damaged_part"),
+        v.literal("wrong_part"),
+        v.literal("site_condition"),
+        v.literal("other"),
+      ),
+    ),
+    issueNotes: v.optional(v.string()),
+    issuePhotos: v.optional(v.array(v.string())),
+    issueReportedAt: v.optional(v.number()),
+    issueReportedBy: v.optional(v.id("users")),
+    issueResolvedAt: v.optional(v.number()),
+
+    updatedAt: v.number(),
+  })
+    .index("by_supply_item", ["supplyItemId"])
+    .index("by_project", ["projectNumber"])
+    .index("by_work_package", ["projectNumber", "plNumber"])
+    .index("by_status", ["status"])
+    .index("by_installed_date", ["installedAt"]),
+
+  evmSnapshots: defineTable({
+    projectNumber: v.string(),
+    snapshotDate: v.number(), // start of day timestamp
+    scope: v.union(
+      v.literal("project"),
+      v.literal("pwbs"),
+      v.literal("work_package"),
+    ),
+    scopeId: v.optional(v.string()), // pwbs code or plNumber if not project-level
+
+    // Metrics
+    bac: v.number(), // Budget at Completion (total items)
+    pv: v.number(), // Planned Value (items scheduled by date)
+    ev: v.number(), // Earned Value (items installed by date)
+    sv: v.number(), // Schedule Variance
+    spi: v.number(), // Schedule Performance Index
+
+    // Derived
+    percentComplete: v.number(),
+    itemsRemaining: v.number(),
+    eac: v.optional(v.number()), // Estimate at Completion
+
+    createdAt: v.number(),
+  })
+    .index("by_project_date", ["projectNumber", "snapshotDate"])
+    .index("by_scope", ["projectNumber", "scope", "scopeId"]),
 });

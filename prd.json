@@ -691,7 +691,7 @@
         "bun check passes"
       ],
       "priority": 41,
-      "passes": false,
+      "passes": true,
       "notes": "Foundation for installation EVM"
     },
     {
