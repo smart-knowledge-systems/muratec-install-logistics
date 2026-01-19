@@ -283,4 +283,87 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_unread", ["userId", "read"]),
+
+  // Field Operations Tables
+  caseTracking: defineTable({
+    projectNumber: v.string(),
+    caseNumber: v.string(),
+
+    // Move-in
+    moveInStatus: v.union(
+      v.literal("expected"),
+      v.literal("arrived"),
+      v.literal("overdue"),
+    ),
+    moveInAt: v.optional(v.number()),
+    moveInBy: v.optional(v.id("users")),
+    caseLocation: v.optional(v.string()),
+    damageReported: v.boolean(),
+    damageNotes: v.optional(v.string()),
+    damagePhotos: v.optional(v.array(v.string())), // file storage IDs
+
+    // Inventory
+    inventoryStatus: v.union(
+      v.literal("pending"),
+      v.literal("in_progress"),
+      v.literal("complete"),
+      v.literal("discrepancy"),
+    ),
+    inventoryAt: v.optional(v.number()),
+    inventoryBy: v.optional(v.id("users")),
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_project", ["projectNumber"])
+    .index("by_case", ["projectNumber", "caseNumber"])
+    .index("by_move_in_status", ["moveInStatus"])
+    .index("by_inventory_status", ["inventoryStatus"]),
+
+  inventoryItems: defineTable({
+    projectNumber: v.string(),
+    caseNumber: v.string(),
+    supplyItemId: v.id("supplyItems"),
+
+    status: v.union(
+      v.literal("pending"),
+      v.literal("verified"),
+      v.literal("missing"),
+      v.literal("damaged"),
+      v.literal("extra"),
+    ),
+    expectedQuantity: v.number(),
+    actualQuantity: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    photos: v.optional(v.array(v.string())),
+
+    verifiedAt: v.optional(v.number()),
+    verifiedBy: v.optional(v.id("users")),
+  })
+    .index("by_case", ["projectNumber", "caseNumber"])
+    .index("by_status", ["status"]),
+
+  pickingTasks: defineTable({
+    projectNumber: v.string(),
+    plNumber: v.string(), // work package
+    supplyItemId: v.id("supplyItems"),
+
+    status: v.union(
+      v.literal("pending"),
+      v.literal("picked"),
+      v.literal("partial"),
+      v.literal("unavailable"),
+    ),
+    requiredQuantity: v.number(),
+    pickedQuantity: v.optional(v.number()),
+    caseNumber: v.optional(v.string()),
+    caseLocation: v.optional(v.string()),
+
+    pickedAt: v.optional(v.number()),
+    pickedBy: v.optional(v.id("users")),
+    notes: v.optional(v.string()),
+  })
+    .index("by_project", ["projectNumber"])
+    .index("by_work_package", ["projectNumber", "plNumber"])
+    .index("by_status", ["status"]),
 });
