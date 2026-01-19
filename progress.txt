@@ -136,3 +136,10 @@ Status: Claude session completed
 ---
 Iteration 3: 2026-01-19 05:23:46
 Working on: US-030: Add case not inventoried warning to picking
+Status: Claude session completed
+---
+Iteration 4: 2026-01-19 05:29:44
+Working on: US-031: Add project scheduling schema tables
+Status: Complete - Added three schema tables for project scheduling: pwbsDependencies (PWBS category dependencies with finish_to_start/start_to_start/parallel types), workPackageSchedule (work package scheduling with dates, status, readiness, cached summaries), and projects (project master data with timeline and summary stats). Key learning: Using isDefault flag on dependencies allows template dependencies with per-project overrides. Cached aggregation fields (itemCount, totalWeightKg, pwbsCategories) on workPackageSchedule prevent repeated expensive joins. Readiness status integration prepares for material availability tracking from field operations. See docs/dev-log/US-031.md for full details.
+Status: Claude session completed
+---

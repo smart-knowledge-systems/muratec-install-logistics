@@ -366,4 +366,98 @@ export default defineSchema({
     .index("by_project", ["projectNumber"])
     .index("by_work_package", ["projectNumber", "plNumber"])
     .index("by_status", ["status"]),
+
+  // Project Scheduling Tables
+  pwbsDependencies: defineTable({
+    fromPwbs: v.string(),
+    toPwbs: v.string(),
+    dependencyType: v.union(
+      v.literal("finish_to_start"),
+      v.literal("start_to_start"),
+      v.literal("none"), // parallel
+    ),
+    isDefault: v.boolean(), // true = applies to all projects unless overridden
+    projectNumber: v.optional(v.string()), // set for project-specific override
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_from", ["fromPwbs"])
+    .index("by_project", ["projectNumber"]),
+
+  workPackageSchedule: defineTable({
+    projectNumber: v.string(),
+    plNumber: v.string(),
+    plName: v.optional(v.string()),
+
+    // Scheduling
+    plannedStart: v.optional(v.number()),
+    plannedEnd: v.optional(v.number()),
+    actualStart: v.optional(v.number()),
+    actualEnd: v.optional(v.number()),
+    estimatedDuration: v.optional(v.number()), // days
+
+    // Dependencies (within project)
+    predecessors: v.optional(v.array(v.string())), // plNumber references
+    dependencyOverride: v.optional(v.boolean()), // true if ignoring PWBS rules
+
+    // Computed/cached fields
+    itemCount: v.number(),
+    totalQuantity: v.number(),
+    totalWeightKg: v.number(),
+    pwbsCategories: v.array(v.string()),
+
+    // Status
+    scheduleStatus: v.union(
+      v.literal("unscheduled"),
+      v.literal("scheduled"),
+      v.literal("in_progress"),
+      v.literal("complete"),
+      v.literal("on_hold"),
+    ),
+    readinessStatus: v.union(
+      v.literal("ready"),
+      v.literal("partial"),
+      v.literal("blocked"),
+    ),
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_project", ["projectNumber"])
+    .index("by_pl", ["projectNumber", "plNumber"])
+    .index("by_status", ["scheduleStatus"])
+    .index("by_planned_start", ["plannedStart"]),
+
+  projects: defineTable({
+    projectNumber: v.string(),
+    projectName: v.optional(v.string()),
+    customer: v.optional(v.string()),
+    site: v.optional(v.string()),
+
+    // Timeline
+    plannedStart: v.optional(v.number()),
+    plannedEnd: v.optional(v.number()),
+    actualStart: v.optional(v.number()),
+    actualEnd: v.optional(v.number()),
+
+    // Summary stats (cached)
+    totalWorkPackages: v.number(),
+    completedWorkPackages: v.number(),
+    totalItems: v.number(),
+    installedItems: v.number(),
+
+    status: v.union(
+      v.literal("planning"),
+      v.literal("active"),
+      v.literal("on_hold"),
+      v.literal("complete"),
+    ),
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_project_number", ["projectNumber"])
+    .index("by_status", ["status"])
+    .index("by_customer", ["customer"]),
 });

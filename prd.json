@@ -523,7 +523,7 @@
         "bun check passes"
       ],
       "priority": 31,
-      "passes": false,
+      "passes": true,
       "notes": "Foundation for project scheduling"
     },
     {
