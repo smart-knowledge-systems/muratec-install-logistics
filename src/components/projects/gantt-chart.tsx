@@ -1,11 +1,30 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { format, addDays, startOfDay, differenceInDays, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval } from "date-fns";
+import {
+  format,
+  addDays,
+  startOfDay,
+  differenceInDays,
+  eachDayOfInterval,
+  eachWeekOfInterval,
+  eachMonthOfInterval,
+} from "date-fns";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { Doc } from "@/convex/_generated/dataModel";
+import { toast } from "sonner";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type ZoomLevel = "day" | "week" | "month";
 
@@ -29,10 +48,142 @@ interface GanttTask {
   predecessors: string[];
 }
 
-export function GanttChart({
-  workPackages,
-}: GanttChartProps) {
+interface DownstreamUpdate {
+  id: string;
+  plNumber: string;
+  newStart: number;
+}
+
+interface DragState {
+  taskId: string;
+  originalStart: number;
+  originalEnd: number;
+  currentStart: number;
+  currentEnd: number;
+}
+
+export function GanttChart({ workPackages }: GanttChartProps) {
   const [zoomLevel, setZoomLevel] = useState<ZoomLevel>("week");
+  const [dragState, setDragState] = useState<DragState | null>(null);
+  const [downstreamDialog, setDownstreamDialog] = useState<{
+    isOpen: boolean;
+    updates: DownstreamUpdate[];
+    originalWorkPackage: string;
+  }>({ isOpen: false, updates: [], originalWorkPackage: "" });
+
+  const scheduleWorkPackage = useMutation(
+    api.workPackageScheduling.scheduleWorkPackage,
+  );
+  const applyDownstreamUpdates = useMutation(
+    api.workPackageScheduling.applyDownstreamUpdates,
+  );
+
+  // Handle drag start
+  const handleDragStart = (task: GanttTask, _e: React.MouseEvent) => {
+    setDragState({
+      taskId: task.id,
+      originalStart: task.start.getTime(),
+      originalEnd: task.end.getTime(),
+      currentStart: task.start.getTime(),
+      currentEnd: task.end.getTime(),
+    });
+  };
+
+  // Handle drag move
+  const handleDragMove = (e: React.MouseEvent, task: GanttTask) => {
+    if (!dragState || dragState.taskId !== task.id) return;
+
+    const svg = e.currentTarget as SVGSVGElement;
+    const rect = svg.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+
+    // Calculate new start date based on mouse position
+    const dayOffset = Math.round((x / TIMELINE_WIDTH) * totalDays);
+    const newStartTime = addDays(timelineStart, dayOffset).getTime();
+    const duration = dragState.originalEnd - dragState.originalStart;
+    const newEndTime = newStartTime + duration;
+
+    setDragState({
+      ...dragState,
+      currentStart: newStartTime,
+      currentEnd: newEndTime,
+    });
+  };
+
+  // Handle drag end
+  const handleDragEnd = async (task: GanttTask) => {
+    if (!dragState || dragState.taskId !== task.id) return;
+
+    // Check if dates actually changed
+    if (
+      dragState.currentStart === dragState.originalStart &&
+      dragState.currentEnd === dragState.originalEnd
+    ) {
+      setDragState(null);
+      return;
+    }
+
+    try {
+      // Call schedule mutation with cascadeDownstream = true
+      const result = await scheduleWorkPackage({
+        projectNumber: workPackages[0]?.projectNumber || "",
+        plNumber: task.id,
+        plannedStart: dragState.currentStart,
+        plannedEnd: dragState.currentEnd,
+        cascadeDownstream: true,
+      });
+
+      // Show warnings if any
+      if (result.validation.warnings.length > 0) {
+        toast.warning("Dependency Warnings", {
+          description: result.validation.warnings.join("\n"),
+        });
+      }
+
+      // Show downstream updates dialog if any
+      if (result.downstreamUpdates.length > 0) {
+        setDownstreamDialog({
+          isOpen: true,
+          updates: result.downstreamUpdates,
+          originalWorkPackage: task.id,
+        });
+      } else {
+        toast.success("Work package rescheduled");
+      }
+    } catch (error) {
+      toast.error("Failed to reschedule", {
+        description: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+
+    setDragState(null);
+  };
+
+  // Handle applying downstream updates
+  const handleApplyDownstreamUpdates = async (apply: boolean) => {
+    if (apply && downstreamDialog.updates.length > 0) {
+      try {
+        await applyDownstreamUpdates({
+          updates: downstreamDialog.updates.map((u) => ({
+            id: u.id as Id<"workPackageSchedule">,
+            newStart: u.newStart,
+          })),
+        });
+        toast.success(
+          `Updated ${downstreamDialog.updates.length} downstream work packages`,
+        );
+      } catch (error) {
+        toast.error("Failed to update downstream work packages", {
+          description: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    }
+    setDownstreamDialog({
+      isOpen: false,
+      updates: [],
+      originalWorkPackage: "",
+    });
+  };
 
   // Convert work packages to Gantt tasks
   const tasks = useMemo<GanttTask[]>(() => {
@@ -73,7 +224,8 @@ export function GanttChart({
   }, [tasks]);
 
   // Calculate timeline intervals based on zoom
-  const timelineIntervals = useMemo(() => {
+  // React Compiler handles memoization - manual useMemo removed to avoid compiler conflicts
+  const timelineIntervals = (() => {
     switch (zoomLevel) {
       case "day":
         return eachDayOfInterval({ start: timelineStart, end: timelineEnd });
@@ -82,7 +234,7 @@ export function GanttChart({
       case "month":
         return eachMonthOfInterval({ start: timelineStart, end: timelineEnd });
     }
-  }, [timelineStart, timelineEnd, zoomLevel]);
+  })();
 
   const totalDays = differenceInDays(timelineEnd, timelineStart);
   const today = startOfDay(new Date());
@@ -92,11 +244,15 @@ export function GanttChart({
   const ROW_HEIGHT = 50;
   const HEADER_HEIGHT = 60;
   const TASK_NAME_WIDTH = 250;
-  const TIMELINE_WIDTH = Math.max(1000, timelineIntervals.length * getIntervalWidth(zoomLevel));
+  const TIMELINE_WIDTH = Math.max(
+    1000,
+    timelineIntervals.length * getIntervalWidth(zoomLevel),
+  );
   const CHART_HEIGHT = tasks.length * ROW_HEIGHT;
 
   // Calculate dependency arrows
-  const dependencyArrows = useMemo(() => {
+  // React Compiler handles memoization - manual useMemo removed to avoid compiler conflicts
+  const dependencyArrows = (() => {
     const arrows: Array<{
       fromTask: string;
       toTask: string;
@@ -136,7 +292,7 @@ export function GanttChart({
     });
 
     return arrows;
-  }, [tasks, timelineStart, totalDays, TIMELINE_WIDTH, ROW_HEIGHT]);
+  })();
 
   return (
     <Card className="p-4">
@@ -236,12 +392,27 @@ export function GanttChart({
 
           {/* Task rows */}
           {tasks.map((task) => {
-            const taskStart = Math.max(0, differenceInDays(task.start, timelineStart));
-            const taskEnd = differenceInDays(task.end, timelineStart);
+            // Use drag state if this task is being dragged
+            const isDragging = dragState?.taskId === task.id;
+            const displayStart = isDragging
+              ? new Date(dragState.currentStart)
+              : task.start;
+            const displayEnd = isDragging
+              ? new Date(dragState.currentEnd)
+              : task.end;
+
+            const taskStart = Math.max(
+              0,
+              differenceInDays(displayStart, timelineStart),
+            );
+            const taskEnd = differenceInDays(displayEnd, timelineStart);
             const taskDuration = taskEnd - taskStart;
 
             const barX = (taskStart / totalDays) * TIMELINE_WIDTH;
-            const barWidth = Math.max(10, (taskDuration / totalDays) * TIMELINE_WIDTH);
+            const barWidth = Math.max(
+              10,
+              (taskDuration / totalDays) * TIMELINE_WIDTH,
+            );
 
             return (
               <div key={task.id} className="flex border-b hover:bg-muted/30">
@@ -249,17 +420,26 @@ export function GanttChart({
                   className="flex-shrink-0 border-r p-3 flex items-center gap-2"
                   style={{ width: TASK_NAME_WIDTH }}
                 >
-                  <span className="font-medium text-sm truncate">{task.id}</span>
+                  <span className="font-medium text-sm truncate">
+                    {task.id}
+                  </span>
                   <Badge variant="outline" className="text-xs flex-shrink-0">
                     {task.pwbsCategories[0]}
                   </Badge>
                   {getReadinessBadge(task.readinessStatus)}
                 </div>
                 <div className="flex-1 relative" style={{ height: ROW_HEIGHT }}>
-                  <svg width={TIMELINE_WIDTH} height={ROW_HEIGHT}>
+                  <svg
+                    width={TIMELINE_WIDTH}
+                    height={ROW_HEIGHT}
+                    onMouseMove={(e) => handleDragMove(e, task)}
+                    onMouseUp={() => handleDragEnd(task)}
+                  >
                     {/* Grid lines */}
                     {timelineIntervals.map((_, intervalIdx) => {
-                      const x = (intervalIdx * TIMELINE_WIDTH) / timelineIntervals.length;
+                      const x =
+                        (intervalIdx * TIMELINE_WIDTH) /
+                        timelineIntervals.length;
                       return (
                         <line
                           key={intervalIdx}
@@ -294,11 +474,23 @@ export function GanttChart({
                       width={barWidth}
                       height={30}
                       fill={getPwbsColor(task.pwbsCategories[0])}
-                      opacity={getReadinessOpacity(task.readinessStatus)}
-                      stroke={getPwbsColor(task.pwbsCategories[0])}
-                      strokeWidth={2}
+                      opacity={
+                        isDragging
+                          ? 0.5
+                          : getReadinessOpacity(task.readinessStatus)
+                      }
+                      stroke={
+                        isDragging
+                          ? "hsl(var(--primary))"
+                          : getPwbsColor(task.pwbsCategories[0])
+                      }
+                      strokeWidth={isDragging ? 3 : 2}
                       rx={4}
-                      className="cursor-pointer hover:opacity-80 transition-opacity"
+                      className="cursor-move hover:opacity-80 transition-opacity"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        handleDragStart(task, e);
+                      }}
                     />
 
                     {/* Readiness pattern overlay */}
@@ -418,7 +610,8 @@ export function GanttChart({
             <div
               className="absolute top-0 bottom-0 pointer-events-none"
               style={{
-                left: TASK_NAME_WIDTH + (todayOffset / totalDays) * TIMELINE_WIDTH,
+                left:
+                  TASK_NAME_WIDTH + (todayOffset / totalDays) * TIMELINE_WIDTH,
                 width: 2,
               }}
             >
@@ -440,10 +633,12 @@ export function GanttChart({
         </div>
         <div className="flex items-center gap-2">
           <div className="w-8 h-4 bg-blue-500 rounded relative overflow-hidden">
-            <div className="absolute inset-0 bg-white opacity-30"
-                 style={{
-                   backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 3px, white 3px, white 6px)'
-                 }}
+            <div
+              className="absolute inset-0 bg-white opacity-30"
+              style={{
+                backgroundImage:
+                  "repeating-linear-gradient(45deg, transparent, transparent 3px, white 3px, white 6px)",
+              }}
             />
           </div>
           <span>Partial (striped)</span>
@@ -453,6 +648,47 @@ export function GanttChart({
           <span>Blocked (hollow)</span>
         </div>
       </div>
+
+      {/* Downstream Updates Dialog */}
+      <Dialog
+        open={downstreamDialog.isOpen}
+        onOpenChange={(open) => {
+          if (!open) handleApplyDownstreamUpdates(false);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Downstream Work Packages?</DialogTitle>
+            <DialogDescription>
+              Moving work package {downstreamDialog.originalWorkPackage} will
+              affect {downstreamDialog.updates.length} downstream work
+              package(s) based on dependencies.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm font-medium mb-2">Affected work packages:</p>
+            <ul className="space-y-2">
+              {downstreamDialog.updates.map((update) => (
+                <li key={update.id} className="text-sm">
+                  <span className="font-medium">{update.plNumber}</span> will
+                  start on {format(new Date(update.newStart), "MMM d, yyyy")}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => handleApplyDownstreamUpdates(false)}
+            >
+              No, Keep Current
+            </Button>
+            <Button onClick={() => handleApplyDownstreamUpdates(true)}>
+              Yes, Auto-Adjust
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
@@ -494,7 +730,9 @@ function getPwbsColor(pwbs: string): string {
   }
 }
 
-function getReadinessOpacity(readiness: "ready" | "partial" | "blocked"): number {
+function getReadinessOpacity(
+  readiness: "ready" | "partial" | "blocked",
+): number {
   switch (readiness) {
     case "ready":
       return 0.9;

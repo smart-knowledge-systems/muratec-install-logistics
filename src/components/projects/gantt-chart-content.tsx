@@ -10,9 +10,7 @@ interface GanttChartContentProps {
   projectNumber: string;
 }
 
-export function GanttChartContent({
-  projectNumber,
-}: GanttChartContentProps) {
+export function GanttChartContent({ projectNumber }: GanttChartContentProps) {
   const workPackages = useQuery(api.workPackages.getWorkPackages, {
     projectNumber,
   });
@@ -49,9 +47,12 @@ export function GanttChartContent({
       <div className="container mx-auto px-4 py-8">
         <div className="text-center py-12">
           <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No Scheduled Work Packages</h3>
+          <h3 className="text-lg font-semibold mb-2">
+            No Scheduled Work Packages
+          </h3>
           <p className="text-muted-foreground">
-            Work packages exist but haven&apos;t been scheduled yet. Visit the work packages page to set planned dates.
+            Work packages exist but haven&apos;t been scheduled yet. Visit the
+            work packages page to set planned dates.
           </p>
         </div>
       </div>
