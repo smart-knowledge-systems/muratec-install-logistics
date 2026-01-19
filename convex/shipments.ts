@@ -1,5 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import type { MutationCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 
 /**
  * Create a new shipment
@@ -183,5 +185,222 @@ export const getShipmentById = query({
   },
   handler: async (ctx, args) => {
     return await ctx.db.get(args.id);
+  },
+});
+
+/**
+ * Helper function to recalculate and update shipment summary fields
+ */
+async function updateShipmentSummary(
+  ctx: MutationCtx,
+  shipmentId: Id<"shipments">,
+) {
+  // Get all cases for this shipment
+  const caseShipments = await ctx.db
+    .query("caseShipments")
+    .withIndex("by_shipment", (q) => q.eq("shipmentId", shipmentId))
+    .collect();
+
+  // Count unique cases
+  const caseCount = caseShipments.length;
+
+  // Get unique project numbers
+  const projectNumbers = [
+    ...new Set(caseShipments.map((cs) => cs.projectNumber)),
+  ];
+
+  // Calculate total weight from supply items
+  let totalWeightKg = 0;
+  for (const caseShipment of caseShipments) {
+    const items = await ctx.db
+      .query("supplyItems")
+      .withIndex("by_case_number", (q) =>
+        q.eq("caseNumber", caseShipment.caseNumber),
+      )
+      .filter((q) => q.eq(q.field("projectNumber"), caseShipment.projectNumber))
+      .collect();
+
+    // Sum weightKg for all items in this case
+    for (const item of items) {
+      if (item.weightKg) {
+        totalWeightKg += item.weightKg;
+      }
+    }
+  }
+
+  // Update shipment summary fields
+  await ctx.db.patch(shipmentId, {
+    caseCount,
+    totalWeightKg,
+    projectNumbers,
+    updatedAt: Date.now(),
+  });
+}
+
+/**
+ * Assign multiple cases to a shipment
+ */
+export const assignCasesToShipment = mutation({
+  args: {
+    shipmentId: v.id("shipments"),
+    cases: v.array(
+      v.object({
+        projectNumber: v.string(),
+        caseNumber: v.string(),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const assignedCaseIds = [];
+
+    // Check if shipment exists
+    const shipment = await ctx.db.get(args.shipmentId);
+    if (!shipment) {
+      throw new Error("Shipment not found");
+    }
+
+    for (const caseData of args.cases) {
+      // Check if case is already assigned to a shipment
+      const existing = await ctx.db
+        .query("caseShipments")
+        .withIndex("by_case", (q) =>
+          q
+            .eq("projectNumber", caseData.projectNumber)
+            .eq("caseNumber", caseData.caseNumber),
+        )
+        .first();
+
+      if (existing) {
+        if (existing.shipmentId === args.shipmentId) {
+          // Already assigned to this shipment, skip
+          assignedCaseIds.push(existing._id);
+          continue;
+        } else {
+          // Already assigned to a different shipment, update
+          await ctx.db.patch(existing._id, {
+            shipmentId: args.shipmentId,
+            updatedAt: now,
+          });
+          assignedCaseIds.push(existing._id);
+
+          // Update old shipment summary
+          if (existing.shipmentId) {
+            await updateShipmentSummary(ctx, existing.shipmentId);
+          }
+        }
+      } else {
+        // Create new case-shipment record
+        const caseShipmentId = await ctx.db.insert("caseShipments", {
+          projectNumber: caseData.projectNumber,
+          caseNumber: caseData.caseNumber,
+          shipmentId: args.shipmentId,
+          createdAt: now,
+          updatedAt: now,
+        });
+        assignedCaseIds.push(caseShipmentId);
+      }
+    }
+
+    // Update shipment summary
+    await updateShipmentSummary(ctx, args.shipmentId);
+
+    return { assignedCount: assignedCaseIds.length, caseIds: assignedCaseIds };
+  },
+});
+
+/**
+ * Remove cases from a shipment
+ */
+export const removeCasesFromShipment = mutation({
+  args: {
+    shipmentId: v.id("shipments"),
+    cases: v.array(
+      v.object({
+        projectNumber: v.string(),
+        caseNumber: v.string(),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const removedCount = [];
+
+    // Check if shipment exists
+    const shipment = await ctx.db.get(args.shipmentId);
+    if (!shipment) {
+      throw new Error("Shipment not found");
+    }
+
+    for (const caseData of args.cases) {
+      // Find the case-shipment record
+      const caseShipment = await ctx.db
+        .query("caseShipments")
+        .withIndex("by_case", (q) =>
+          q
+            .eq("projectNumber", caseData.projectNumber)
+            .eq("caseNumber", caseData.caseNumber),
+        )
+        .first();
+
+      if (caseShipment && caseShipment.shipmentId === args.shipmentId) {
+        // Clear the shipmentId (unlink from shipment)
+        await ctx.db.patch(caseShipment._id, {
+          shipmentId: undefined,
+          updatedAt: Date.now(),
+        });
+        removedCount.push(caseShipment._id);
+      }
+    }
+
+    // Update shipment summary
+    await updateShipmentSummary(ctx, args.shipmentId);
+
+    return { removedCount: removedCount.length };
+  },
+});
+
+/**
+ * Get all cases assigned to a shipment
+ */
+export const getCasesByShipment = query({
+  args: {
+    shipmentId: v.id("shipments"),
+  },
+  handler: async (ctx, args) => {
+    const caseShipments = await ctx.db
+      .query("caseShipments")
+      .withIndex("by_shipment", (q) => q.eq("shipmentId", args.shipmentId))
+      .collect();
+
+    return caseShipments;
+  },
+});
+
+/**
+ * Get the shipment for a specific case
+ */
+export const getShipmentForCase = query({
+  args: {
+    projectNumber: v.string(),
+    caseNumber: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Find the case-shipment record
+    const caseShipment = await ctx.db
+      .query("caseShipments")
+      .withIndex("by_case", (q) =>
+        q
+          .eq("projectNumber", args.projectNumber)
+          .eq("caseNumber", args.caseNumber),
+      )
+      .first();
+
+    if (!caseShipment || !caseShipment.shipmentId) {
+      return null;
+    }
+
+    // Get the shipment
+    const shipment = await ctx.db.get(caseShipment.shipmentId);
+    return shipment;
   },
 });
