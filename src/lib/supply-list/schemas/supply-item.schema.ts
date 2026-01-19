@@ -152,6 +152,7 @@ export function computeItemNumber(
 /**
  * Splits PL column value (column R) into number and name
  * Column R contains two-line values: plan number (line 1) and plan name (line 2)
+ * Note: Excel may use various line break formats including \r\r\n
  */
 export function splitPlValue(value: string | null | undefined): {
   plNumber: string | null;
@@ -162,11 +163,14 @@ export function splitPlValue(value: string | null | undefined): {
   }
 
   const str = String(value);
-  // Split on newline characters (handles \n, \r\n, or \r)
-  const lines = str.split(/\r?\n|\r/);
+  // Split on any combination of line break characters, then filter out empty strings
+  const lines = str
+    .split(/\r?\n|\r/)
+    .map((line) => line.trim())
+    .filter((line) => line !== "");
 
-  const plNumber = lines[0]?.trim() || null;
-  const plName = lines[1]?.trim() || null;
+  const plNumber = lines[0] || null;
+  const plName = lines[1] || null;
 
   return { plNumber, plName };
 }
