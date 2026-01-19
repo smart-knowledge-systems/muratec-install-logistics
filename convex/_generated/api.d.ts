@@ -10,6 +10,7 @@
 
 import type * as analytics from "../analytics.js";
 import type * as featureRequests from "../featureRequests.js";
+import type * as savedViews from "../savedViews.js";
 import type * as supplyItems from "../supplyItems.js";
 import type * as users from "../users.js";
 
@@ -22,6 +23,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   analytics: typeof analytics;
   featureRequests: typeof featureRequests;
+  savedViews: typeof savedViews;
   supplyItems: typeof supplyItems;
   users: typeof users;
 }>;
