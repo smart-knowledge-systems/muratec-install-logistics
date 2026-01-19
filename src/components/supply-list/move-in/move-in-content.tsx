@@ -19,6 +19,8 @@ import { Progress } from "@/components/ui/progress";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { PhotoCapture } from "@/components/photos/photo-capture";
+import { PhotoGallery } from "@/components/photos/photo-gallery";
 import { toast } from "sonner";
 import {
   ScanLine,
@@ -26,7 +28,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
-  Camera,
 } from "lucide-react";
 
 export function MoveInContent() {
@@ -37,6 +38,7 @@ export function MoveInContent() {
   const [selectedCase, setSelectedCase] = useState<string | null>(null);
   const [locationInput, setLocationInput] = useState("");
   const [damageNotes, setDamageNotes] = useState("");
+  const [damagePhotos, setDamagePhotos] = useState<string[]>([]);
   const [showDamageSheet, setShowDamageSheet] = useState(false);
 
   // Queries
@@ -119,10 +121,12 @@ export function MoveInContent() {
         projectNumber: selectedProject,
         caseNumber: selectedCase,
         damageNotes: damageNotes,
+        damagePhotos: damagePhotos.length > 0 ? damagePhotos : undefined,
       });
 
       toast.success(`Damage report submitted for case ${selectedCase}`);
       setDamageNotes("");
+      setDamagePhotos([]);
       setShowDamageSheet(false);
     } catch (error) {
       toast.error(`Failed to report damage: ${error}`);
@@ -320,14 +324,23 @@ export function MoveInContent() {
 
                       <div className="space-y-2">
                         <Label>Photos</Label>
-                        <Button variant="outline" className="w-full">
-                          <Camera className="h-4 w-4 mr-2" />
-                          Add Photo
-                        </Button>
-                        <p className="text-xs text-muted-foreground">
-                          Photo capture will be implemented in US-029
-                        </p>
+                        <PhotoCapture
+                          onPhotosChange={setDamagePhotos}
+                          existingPhotos={damagePhotos}
+                          maxPhotos={5}
+                        />
                       </div>
+
+                      {caseTracking?.damagePhotos &&
+                        caseTracking.damagePhotos.length > 0 && (
+                          <div className="space-y-2">
+                            <Label>Existing Photos</Label>
+                            <PhotoGallery
+                              storageIds={caseTracking.damagePhotos}
+                              thumbnailSize="md"
+                            />
+                          </div>
+                        )}
 
                       <div className="flex gap-2 pt-4">
                         <Button
@@ -336,6 +349,7 @@ export function MoveInContent() {
                           onClick={() => {
                             setShowDamageSheet(false);
                             setDamageNotes("");
+                            setDamagePhotos([]);
                           }}
                         >
                           Cancel

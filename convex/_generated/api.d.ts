@@ -16,6 +16,7 @@ import type * as fieldDashboard from "../fieldDashboard.js";
 import type * as fieldOperations from "../fieldOperations.js";
 import type * as logisticsJobs from "../logisticsJobs.js";
 import type * as notifications from "../notifications.js";
+import type * as photos from "../photos.js";
 import type * as picking from "../picking.js";
 import type * as savedViews from "../savedViews.js";
 import type * as shipments from "../shipments.js";
@@ -37,6 +38,7 @@ declare const fullApi: ApiFromModules<{
   fieldOperations: typeof fieldOperations;
   logisticsJobs: typeof logisticsJobs;
   notifications: typeof notifications;
+  photos: typeof photos;
   picking: typeof picking;
   savedViews: typeof savedViews;
   shipments: typeof shipments;

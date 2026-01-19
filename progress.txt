@@ -128,3 +128,7 @@ Working on: US-028: Build site manager field dashboard
 Status: Complete - Built comprehensive field operations dashboard at /supply-list/field-dashboard with summary cards (move-in, inventory, picking), pending actions panel, and detailed discrepancy report. Key learning: Date range filtering required lazy state initialization to avoid React Compiler purity violations. Dashboard aggregates data across three field operation tables (caseTracking, inventoryItems, pickingTasks) for real-time project visibility. Type assertions needed for status fields with broader database types than component props. See docs/dev-log/US-028.md for full details.
 Status: Claude session completed
 ---
+Status: Claude session completed
+---
+Iteration 2: 2026-01-19 05:15:18
+Working on: US-029: Add photo upload to field operations

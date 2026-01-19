@@ -18,13 +18,13 @@ import { Progress } from "@/components/ui/progress";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { PhotoCapture } from "@/components/photos/photo-capture";
 import { toast } from "sonner";
 import {
   ScanLine,
   CheckCircle2,
   XCircle,
   AlertTriangle,
-  Camera,
   Package,
   Hash,
 } from "lucide-react";
@@ -55,6 +55,7 @@ export function InventoryContent() {
   const [selectedItemId, setSelectedItemId] =
     useState<Id<"supplyItems"> | null>(null);
   const [discrepancyNotes, setDiscrepancyNotes] = useState("");
+  const [discrepancyPhotos, setDiscrepancyPhotos] = useState<string[]>([]);
   const [actualQuantity, setActualQuantity] = useState("");
 
   // Queries
@@ -180,12 +181,13 @@ export function InventoryContent() {
       });
 
       // Add discrepancy details
-      if (discrepancyNotes.trim()) {
+      if (discrepancyNotes.trim() || discrepancyPhotos.length > 0) {
         await addDiscrepancyDetails({
           projectNumber: selectedProject,
           caseNumber: selectedCase,
           supplyItemId: selectedItemId,
-          notes: discrepancyNotes,
+          notes: discrepancyNotes || undefined,
+          photos: discrepancyPhotos.length > 0 ? discrepancyPhotos : undefined,
         });
       }
 
@@ -212,6 +214,7 @@ export function InventoryContent() {
       setDiscrepancySheetOpen(false);
       setSelectedItemId(null);
       setDiscrepancyNotes("");
+      setDiscrepancyPhotos([]);
       setActualQuantity("");
     } catch (error) {
       toast.error(`Failed to save discrepancy: ${error}`);
@@ -563,13 +566,11 @@ export function InventoryContent() {
 
             <div className="space-y-2">
               <Label>Photos</Label>
-              <Button variant="outline" className="w-full" disabled>
-                <Camera className="h-4 w-4 mr-2" />
-                Add Photo
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                Photo capture will be implemented in US-029
-              </p>
+              <PhotoCapture
+                onPhotosChange={setDiscrepancyPhotos}
+                existingPhotos={discrepancyPhotos}
+                maxPhotos={5}
+              />
             </div>
 
             <div className="flex gap-2 pt-4">
@@ -579,6 +580,7 @@ export function InventoryContent() {
                 onClick={() => {
                   setDiscrepancySheetOpen(false);
                   setDiscrepancyNotes("");
+                  setDiscrepancyPhotos([]);
                   setActualQuantity("");
                   setSelectedItemId(null);
                 }}
