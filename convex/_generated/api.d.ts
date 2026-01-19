@@ -19,6 +19,7 @@ import type * as materialReadiness from "../materialReadiness.js";
 import type * as notifications from "../notifications.js";
 import type * as photos from "../photos.js";
 import type * as picking from "../picking.js";
+import type * as pwbsCategories from "../pwbsCategories.js";
 import type * as pwbsDependencies from "../pwbsDependencies.js";
 import type * as savedViews from "../savedViews.js";
 import type * as shipments from "../shipments.js";
@@ -45,6 +46,7 @@ declare const fullApi: ApiFromModules<{
   notifications: typeof notifications;
   photos: typeof photos;
   picking: typeof picking;
+  pwbsCategories: typeof pwbsCategories;
   pwbsDependencies: typeof pwbsDependencies;
   savedViews: typeof savedViews;
   shipments: typeof shipments;
